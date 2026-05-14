@@ -1,0 +1,141 @@
+﻿  common.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+  main.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(4,9): warning C4005: “min”: 宏重定义
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(5,9): warning C4005: “max”: 宏重定义
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\main.cpp(231,98): warning C4244: “=”: 从“u16”转换到“u8”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\main.cpp(386,94): warning C4244: “=”: 从“u16”转换到“u8”，可能丢失数据
+  awb.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\awb.cpp(10,15): warning C4244: “初始化”: 从“int”转换到“float”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\awb.cpp(11,15): warning C4244: “初始化”: 从“int”转换到“float”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\awb.cpp(50,20): warning C4244: “=”: 从“float”转换到“int”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\awb.cpp(51,20): warning C4244: “=”: 从“float”转换到“int”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\awb.cpp(75,20): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\awb.cpp(108,15): warning C4244: “初始化”: 从“int”转换到“float”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\awb.cpp(109,15): warning C4244: “初始化”: 从“int”转换到“float”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\awb.cpp(113,28): warning C4244: “=”: 从“float”转换到“u16”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\awb.cpp(114,32): warning C4244: “=”: 从“float”转换到“u16”，可能丢失数据
+  blc.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\blc.cpp(68,63): warning C4244: “=”: 从“float”转换到“u32”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\blc.cpp(69,74): warning C4244: “=”: 从“float”转换到“u32”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\blc.cpp(70,76): warning C4244: “=”: 从“float”转换到“u32”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\blc.cpp(71,82): warning C4244: “=”: 从“float”转换到“u32”，可能丢失数据
+  ccm.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+  contrast.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\contrast.cpp(27,17): warning C4244: “初始化”: 从“float”转换到“long”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\contrast.cpp(28,14): warning C4244: “=”: 从“long”转换到“u8”，可能丢失数据
+  csc.cpp
+  demosaic.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\demosaic.cpp(833,29): warning C4244: “初始化”: 从“int”转换到“float”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\demosaic.cpp(834,29): warning C4244: “初始化”: 从“int”转换到“float”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\demosaic.cpp(1009,38): warning C4244: “=”: 从“double”转换到“unsigned short”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\demosaic.cpp(1019,22): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+  depwl.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+  dpc.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+  gamma.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\gamma.cpp(8,16): warning C4244: “初始化”: 从“double”转换到“u16”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\gamma.cpp(10,21): warning C4305: “初始化”: 从“double”到“float”截断
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\gamma.cpp(12,21): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\gamma.cpp(13,21): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+  ldci.cpp
+  lsc.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\lsc.cpp(39,8): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\lsc.cpp(77,72): warning C4244: “=”: 从“float”转换到“u32”，可能丢失数据
+  raw_extern.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+  RNR.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\RNR.cpp(443,31): warning C4305: “初始化”: 从“double”到“float”截断
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\RNR.cpp(444,25): warning C4305: “初始化”: 从“double”到“float”截断
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\RNR.cpp(657,15): warning C4244: “初始化”: 从“int”转换到“float”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\RNR.cpp(658,15): warning C4244: “初始化”: 从“int”转换到“float”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\RNR.cpp(659,15): warning C4244: “初始化”: 从“int”转换到“float”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\RNR.cpp(677,12): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\RNR.cpp(678,12): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\RNR.cpp(679,12): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
+  sharpen.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\sharpen.cpp(327,16): warning C4244: “=”: 从“float”转换到“u8”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\sharpen.cpp(328,16): warning C4244: “=”: 从“float”转换到“u8”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\sharpen.cpp(329,16): warning C4244: “=”: 从“float”转换到“u8”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\sharpen.cpp(533,21): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
+  Tonemap.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\Tonemap.cpp(35,72): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\Tonemap.cpp(95,71): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\Tonemap.cpp(145,80): warning C4244: “=”: 从“float”转换到“int”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\Tonemap.cpp(496,17): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\Tonemap.cpp(503,51): warning C4244: “=”: 从“double”转换到“u16”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\Tonemap.cpp(504,57): warning C4244: “=”: 从“double”转换到“u16”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\Tonemap.cpp(505,55): warning C4244: “=”: 从“double”转换到“u16”，可能丢失数据
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\Tonemap.cpp(506,61): warning C4244: “=”: 从“double”转换到“u16”，可能丢失数据
+  parameters.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\parameters\parameters.cpp(66,10): warning C4305: “初始化”: 从“double”到“float”截断
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\parameters\parameters.cpp(67,10): warning C4305: “初始化”: 从“double”到“float”截断
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\parameters\parameters.cpp(68,10): warning C4305: “初始化”: 从“double”到“float”截断
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\parameters\parameters.cpp(119,16): warning C4305: “初始化”: 从“double”到“float”截断
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\parameters\parameters.cpp(166,10): warning C4305: “初始化”: 从“double”到“float”截断
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\parameters\parameters.cpp(167,10): warning C4305: “初始化”: 从“double”到“float”截断
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\parameters\parameters.cpp(168,10): warning C4305: “初始化”: 从“double”到“float”截断
+  managepipe.cpp
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(119,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_rawextern”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(147,16): warning C4091: “typedef ”: 没有声明变量时忽略“ISPParam_contrast”的左侧
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\common\common.h(168,7): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+  imgui_impl_dx11.cpp
+  正在编译...
+  imgui_impl_win32.cpp
+  imgui.cpp
+  imgui_demo.cpp
+  imgui_draw.cpp
+  imgui_tables.cpp
+  imgui_widgets.cpp
+  正在生成代码
+  Previous IPDB not found, fall back to full compilation.
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\blc.cpp(74): warning C4715: “BLC_run”: 不是所有的控件路径都返回值
+F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\module\awb.cpp(98): warning C4715: “AWB_run”: 不是所有的控件路径都返回值
+  All 3071 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  已完成代码的生成
+  MyISPPipe.vcxproj -> F:\NewVersion_ISP\MyISPPipeLine\MyISPPipe\x64\Release\MyISPPipe.exe

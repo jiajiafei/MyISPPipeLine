@@ -1,0 +1,209 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\module">
+      <UniqueIdentifier>{3d54aa80-116e-4109-9d8a-daf9927e2d30}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\data">
+      <UniqueIdentifier>{6bac3ae8-e126-4d6e-9ed3-82c2a56e33e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\parameters">
+      <UniqueIdentifier>{df3d927e-6f37-405c-a5b5-b948c0cff3eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Pipe">
+      <UniqueIdentifier>{f8be5530-4cb3-4abb-bc86-c7e3d50c1d91}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common">
+      <UniqueIdentifier>{3b858079-84e2-4e8e-8fae-70bb57314d63}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\thirdparty">
+      <UniqueIdentifier>{abc6a575-7ed2-4999-b4db-0f3b74a1f946}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\thirdparty\imgui">
+      <UniqueIdentifier>{00e5f2a7-4030-430e-beda-f0dfc11971ef}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\module\blc.cpp">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\module\ccm.cpp">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\module\csc.cpp">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\module\demosaic.cpp">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\module\ldci.cpp">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\module\lsc.cpp">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\module\RNR.cpp">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\module\sharpen.cpp">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\module\Tonemap.cpp">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\parameters\parameters.cpp">
+      <Filter>Source Files\parameters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Pipe\managepipe.cpp">
+      <Filter>Source Files\Pipe</Filter>
+    </ClCompile>
+    <ClCompile Include="..\module\depwl.cpp">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\common.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\module\raw_extern.cpp">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\module\contrast.cpp">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\module\gamma.cpp">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\module\awb.cpp">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\module\dpc.cpp">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\imgui\imgui.cpp">
+      <Filter>Source Files\thirdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\imgui\imgui_demo.cpp">
+      <Filter>Source Files\thirdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\imgui\imgui_draw.cpp">
+      <Filter>Source Files\thirdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\imgui\imgui_tables.cpp">
+      <Filter>Source Files\thirdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\imgui\imgui_widgets.cpp">
+      <Filter>Source Files\thirdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\imgui\backends\imgui_impl_dx11.cpp">
+      <Filter>Source Files\thirdparty\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\imgui\backends\imgui_impl_win32.cpp">
+      <Filter>Source Files\thirdparty\imgui</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\parameters\parameters.h">
+      <Filter>Source Files\parameters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\module\blc.h">
+      <Filter>Source Files\module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\module\ccm.h">
+      <Filter>Source Files\module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\module\csc.h">
+      <Filter>Source Files\module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\module\demosaic.h">
+      <Filter>Source Files\module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\module\ldci.h">
+      <Filter>Source Files\module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\module\lsc.h">
+      <Filter>Source Files\module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\module\RNR.h">
+      <Filter>Source Files\module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\module\sharpen.h">
+      <Filter>Source Files\module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\module\Tonemap.h">
+      <Filter>Source Files\module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\common.h">
+      <Filter>Source Files\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pipe\mangepipe.h">
+      <Filter>Source Files\Pipe</Filter>
+    </ClInclude>
+    <ClInclude Include="..\module\depwl.h">
+      <Filter>Source Files\module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\module\raw_extern.h">
+      <Filter>Source Files\module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\module\contrast.h">
+      <Filter>Source Files\module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\module\gamma.h">
+      <Filter>Source Files\module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\module\awb.h">
+      <Filter>Source Files\module</Filter>
+    </ClInclude>
+    <ClInclude Include="DPC.h">
+      <Filter>Source Files\module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\imgui\imconfig.h">
+      <Filter>Source Files\thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\imgui\imgui.h">
+      <Filter>Source Files\thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\imgui\imgui_internal.h">
+      <Filter>Source Files\thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\imgui\imstb_rectpack.h">
+      <Filter>Source Files\thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\imgui\imstb_textedit.h">
+      <Filter>Source Files\thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\imgui\imstb_truetype.h">
+      <Filter>Source Files\thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\imgui\backends\imgui_impl_dx11.h">
+      <Filter>Source Files\thirdparty\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\imgui\backends\imgui_impl_win32.h">
+      <Filter>Source Files\thirdparty\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\stb_image_write.h">
+      <Filter>Source Files\common</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\11.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+</Project>
