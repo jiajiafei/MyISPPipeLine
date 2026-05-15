@@ -60,11 +60,43 @@ void downsample2x(const float* src, int w, int h, float* dst) {
 }
 void upsample2x(const float* src, int w, int h, float* dst) {
     int w2 = w * 2, h2 = h * 2;
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
-            float val = src[idx(x, y, w)];
-            dst[idx(2 * x, 2 * y, w2)] = val; dst[idx(2 * x + 1, 2 * y, w2)] = val;
-            dst[idx(2 * x, 2 * y + 1, w2)] = val; dst[idx(2 * x + 1, 2 * y + 1, w2)] = val;
+
+    // 遍历目标（大）图像
+    for (int y = 0; y < h2; y++) {
+        // 映射回原图的坐标，减 0.5 是为了对齐像素中心
+        float src_y = (y + 0.5f) / 2.0f - 0.5f;
+        int y1 = (int)floorf(src_y);
+        int y2 = y1 + 1;
+        float wy2 = src_y - y1; // y 方向的权重（距离下边界的距离）
+        float wy1 = 1.0f - wy2;
+
+        // 边界处理：防止越界
+        y1 = (y1 < 0) ? 0 : (y1 > h - 1 ? h - 1 : y1);
+        y2 = (y2 < 0) ? 0 : (y2 > h - 1 ? h - 1 : y2);
+
+        for (int x = 0; x < w2; x++) {
+            float src_x = (x + 0.5f) / 2.0f - 0.5f;
+            int x1 = (int)floorf(src_x);
+            int x2 = x1 + 1;
+            float wx2 = src_x - x1; // x 方向的权重
+            float wx1 = 1.0f - wx2;
+
+            // 边界处理
+            x1 = (x1 < 0) ? 0 : (x1 > w - 1 ? w - 1 : x1);
+            x2 = (x2 < 0) ? 0 : (x2 > w - 1 ? w - 1 : x2);
+
+            // 获取原图相邻的四个像素点
+            float v11 = src[y1 * w + x1]; // 左上
+            float v12 = src[y1 * w + x2]; // 右上
+            float v21 = src[y2 * w + x1]; // 左下
+            float v22 = src[y2 * w + x2]; // 右下
+
+            // 双线性插值公式
+            // 先在水平方向做两次线性插值，再在垂直方向做一次
+            float val = wy1 * (wx1 * v11 + wx2 * v12) +
+                wy2 * (wx1 * v21 + wx2 * v22);
+
+            dst[y * w2 + x] = val;
         }
     }
 }
@@ -687,3 +719,4 @@ int Run_RawNR(stISPParams* gISPparam, u16* src, u16* dst)
     denoise_bayer_vst_nlm_pipeline(src, dst, rows, cols, int(hw), hr, hg, hb);
     return 0;
 }
+
