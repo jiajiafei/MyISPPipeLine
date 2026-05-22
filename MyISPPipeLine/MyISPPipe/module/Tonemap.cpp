@@ -480,41 +480,50 @@ unsigned short* ELTM(int* rawdata_y, stISPParams* gISPparam)
     return result;
 }
 
+// ---------- 1. 工业级纯低分辨率空间无缝算子 ----------
+static void FG_Downsample2x_Generic(const double* src, double* dst, int W, int H) {
+    int dstW = (W + 1) / 2;
+    int dstH = (H + 1) / 2;
 
-// ---------- 2. 优化重构后的双层级联金字塔 ELTM 主函数 ----------
-static void FG_Downsample2x(const double* src, double* dst, int W, int H) {
-    int dstW = W / 2;
-    int dstH = H / 2;
 #pragma omp parallel for
     for (int y = 0; y < dstH; ++y) {
+        int srcY0 = y * 2;
+        int srcY1 = min(srcY0 + 1, H - 1); // 奇数边界自动边界镜像
+
         for (int x = 0; x < dstW; ++x) {
-            int srcX = x * 2;
-            int srcY = y * 2;
-            dst[y * dstW + x] = (src[srcY * W + srcX] +
-                src[srcY * W + (srcX + 1)] +
-                src[(srcY + 1) * W + srcX] +
-                src[(srcY + 1) * W + (srcX + 1)]) * 0.25;
+            int srcX0 = x * 2;
+            int srcX1 = min(srcX0 + 1, W - 1);
+
+            dst[y * dstW + x] = (src[srcY0 * W + srcX0] +
+                src[srcY0 * W + srcX1] +
+                src[srcY1 * W + srcX0] +
+                src[srcY1 * W + srcX1]) * 0.25;
         }
     }
 }
 
-// 任意跨度中心对齐双线性上采样 (从 srcW/srcH 完美拉伸到 dstW/dstH)
-static void FG_UpsampleBilinear(const double* src, double* dst, int srcW, int srcH, int dstW, int dstH) {
+// 【绝对几何中心对齐】双线性上采样 (不再受制于 canvas 比例，无相位漂移)
+// 【通用中心对齐版】双线性上采样 —— 动态自动计算任意缩放比
+static void FG_UpsampleBilinear_Generic(const double* src, double* dst, int srcW, int srcH, int dstW, int dstH) {
+    // 动态计算水平和垂直方向的真实缩放步长
     double scaleX = (double)srcW / dstW;
     double scaleY = (double)srcH / dstH;
+
 #pragma omp parallel for
     for (int y = 0; y < dstH; ++y) {
+        // 标准中心对齐映射：将大图的像素中心 (y + 0.5) 反映射回小图空间，再减去 0.5 得到左上角索引
         double srcY = (y + 0.5) * scaleY - 0.5;
-        int y0 = max(0, min((int)std::floor(srcY), srcH - 1));
-        int y1 = max(0, min(y0 + 1, srcH - 1));
-        double v = srcY - y0;
+        int y0 = max(0, min((int)floor(srcY), srcH - 1));
+        int y1 = min(y0 + 1, srcH - 1);
+        double v = max(0.0, min(1.0, srcY - y0)); // 保证权重在 [0, 1]
 
         for (int x = 0; x < dstW; ++x) {
             double srcX = (x + 0.5) * scaleX - 0.5;
-            int x0 = max(0, min((int)std::floor(srcX), srcW - 1));
-            int x1 = max(0, min(x0 + 1, srcX - 1));
-            double u = srcX - x0;
+            int x0 = max(0, min((int)floor(srcX), srcW - 1));
+            int x1 = min(x0 + 1, srcW - 1);
+            double u = max(0.0, min(1.0, srcX - x0));
 
+            // 四点插值
             dst[y * dstW + x] = (1.0 - u) * (1.0 - v) * src[y0 * srcW + x0] +
                 u * (1.0 - v) * src[y0 * srcW + x1] +
                 (1.0 - u) * v * src[y1 * srcW + x0] +
@@ -523,38 +532,31 @@ static void FG_UpsampleBilinear(const double* src, double* dst, int srcW, int sr
     }
 }
 
-// 基础一维分离式 Box Blur (只在当前分辨率空间内运行)
+// 空间解耦的一维分离式 BoxBlur (同样做边界守护)
 static void FG_BoxBlur_Space(const double* src, double* dst, int W, int H, int r) {
     std::vector<double> tmp(W * H);
 #pragma omp parallel for
     for (int y = 0; y < H; ++y) {
         for (int x = 0; x < W; ++x) {
             double sum = 0.0;
-            int count = 0;
             for (int k = -r; k <= r; ++k) {
-                int nx = max(0, min(W - 1, x + k));
-                sum += src[y * W + nx];
-                count++;
+                sum += src[y * W + max(0, min(W - 1, x + k))];
             }
-            tmp[y * W + x] = sum / count;
+            tmp[y * W + x] = sum / (2 * r + 1);
         }
     }
 #pragma omp parallel for
     for (int y = 0; y < H; ++y) {
         for (int x = 0; x < W; ++x) {
             double sum = 0.0;
-            int count = 0;
             for (int k = -r; k <= r; ++k) {
-                int ny = max(0, min(H - 1, y + k));
-                sum += tmp[ny * W + x];
-                count++;
+                sum += tmp[max(0, min(H - 1, y + k)) * W + x];
             }
-            dst[y * W + x] = sum / count;
+            dst[y * W + x] = sum / (2 * r + 1);
         }
     }
 }
 
-// 在当前空间计算自导向系数 a 和 b
 static void FG_ComputeCoeffs_Space(const double* I, double* out_a, double* out_b, int W, int H, int r, double eps) {
     int N = W * H;
     std::vector<double> II(N);
@@ -575,10 +577,29 @@ static void FG_ComputeCoeffs_Space(const double* I, double* out_a, double* out_b
     }
 }
 
-// ---------- 2. 真正级联的流式导向金字塔 ELTM 函数 ----------
+static void FG_PostSmoothCoeffs(double* arr, int W, int H) {
+    std::vector<double> tmp(W * H);
+#pragma omp parallel for
+    for (int y = 0; y < H; ++y) {
+        for (int x = 0; x < W; ++x) {
+            int xl = max(0, x - 1);
+            int xr = min(W - 1, x + 1);
+            tmp[y * W + x] = (arr[y * W + xl] + arr[y * W + x] + arr[y * W + xr]) / 3.0;
+        }
+    }
+#pragma omp parallel for
+    for (int y = 0; y < H; ++y) {
+        int yt = max(0, y - 1);
+        int yb = min(H - 1, y + 1);
+        for (int x = 0; x < W; ++x) {
+            arr[y * W + x] = (tmp[yt * W + x] + tmp[y * W + x] + tmp[yb * W + x]) / 3.0;
+        }
+    }
+}
+
+// ---------- 2. 基于“🚀 完美重构版”精修后的 ELTM 函数 ----------
 unsigned short* ELTM_pyr(int* rawdata_y, stISPParams* gISPparam)
 {
-    // ---------- 提取用户和系统参数 ----------
     double tauR = gISPparam->tonemap_Param.tauR;
     double P = gISPparam->tonemap_Param.P;
     float shadow_boost = gISPparam->tonemap_Param.shadow_boost;
@@ -587,9 +608,10 @@ unsigned short* ELTM_pyr(int* rawdata_y, stISPParams* gISPparam)
     float light_compress = gISPparam->tonemap_Param.light_compress;
 
     double eta[2] = { gISPparam->tonemap_Param.etaF, gISPparam->tonemap_Param.etaC };
-    double edge_sigma_r[2] = { 0.04, 0.12 };
+    double edge_sigma_r[2] = { 0.04, 0.18 };
     double eps[2] = { edge_sigma_r[0] * edge_sigma_r[0], edge_sigma_r[1] * edge_sigma_r[1] };
 
+    // 原始输入的真实满分辨率宽高
     int W = gISPparam->rawinfo.W / 2;
     int H = gISPparam->rawinfo.H / 2;
     int N = H * W;
@@ -598,7 +620,6 @@ unsigned short* ELTM_pyr(int* rawdata_y, stISPParams* gISPparam)
     unsigned short* result = (unsigned short*)malloc(sizeof(unsigned short) * N);
     double* logimage = (double*)malloc(sizeof(double) * N);
 
-    // 满分辨率图层缓存
     double* pyr_Detail0 = (double*)malloc(sizeof(double) * N);
     double* pyr_Detail1 = (double*)malloc(sizeof(double) * N);
     double* pyr_Base0 = (double*)malloc(sizeof(double) * N);
@@ -607,7 +628,6 @@ unsigned short* ELTM_pyr(int* rawdata_y, stISPParams* gISPparam)
 
     double maxBPlog = -1e9, minBPlog = 1e9;
 
-    // ---------- Step 1: Log transform ----------
 #pragma omp parallel for reduction(max:maxBPlog) reduction(min:minBPlog)
     for (int i = 0; i < N; i++) {
         logimage[i] = (rawdata_y[i] <= 0) ? 0.0 : fast_log10((double)rawdata_y[i]);
@@ -615,50 +635,52 @@ unsigned short* ELTM_pyr(int* rawdata_y, stISPParams* gISPparam)
         if (logimage[i] < minBPlog) minBPlog = logimage[i];
     }
 
-    // ---------- Step 2: 真正级联的多尺度空间流式分解 ----------
+    // ---------- Step 2: 金字塔动态分配（全面引入 Ceil 机制） ----------
 
-    // 【1/2 分辨率子空间】 
-    int W_sub1 = W / 2, H_sub1 = H / 2;
+    // 【1/2 空间分配】
+    int W_sub1 = (W + 1) / 2;
+    int H_sub1 = (H + 1) / 2;
     std::vector<double> img_sub1(W_sub1 * H_sub1);
     std::vector<double> a_sub1(W_sub1 * H_sub1), b_sub1(W_sub1 * H_sub1);
     std::vector<double> base_sub1(W_sub1 * H_sub1);
 
-    FG_Downsample2x(logimage, img_sub1.data(), W, H); // 下采样原图至 1/2
-    FG_ComputeCoeffs_Space(img_sub1.data(), a_sub1.data(), b_sub1.data(), W_sub1, H_sub1, 2, eps[0]); // 算第一层a,b
+    FG_Downsample2x_Generic(logimage, img_sub1.data(), W, H);
+    FG_ComputeCoeffs_Space(img_sub1.data(), a_sub1.data(), b_sub1.data(), W_sub1, H_sub1, 2, eps[0]);
 #pragma omp parallel for
     for (int i = 0; i < W_sub1 * H_sub1; ++i) {
-        base_sub1[i] = a_sub1[i] * img_sub1[i] + b_sub1[i]; // 在 1/2 空间直接重构出低频 Base0_sub
+        base_sub1[i] = a_sub1[i] * img_sub1[i] + b_sub1[i];
     }
 
-    // 【1/4 分辨率子空间】
-    int W_sub2 = W_sub1 / 2, H_sub2 = H_sub1 / 2;
+    // 【1/4 空间分配】
+    int W_sub2 = (W_sub1 + 1) / 2;
+    int H_sub2 = (H_sub1 + 1) / 2;
     std::vector<double> img_sub2(W_sub2 * H_sub2);
     std::vector<double> a_sub2(W_sub2 * H_sub2), b_sub2(W_sub2 * H_sub2);
 
-    FG_Downsample2x(base_sub1.data(), img_sub2.data(), W_sub1, H_sub1); // 从 Base0_sub 继续下采样到 1/4 空间
-    FG_ComputeCoeffs_Space(img_sub2.data(), a_sub2.data(), b_sub2.data(), W_sub2, H_sub2, 3, eps[1]); // 算第二层a,b
+    FG_Downsample2x_Generic(base_sub1.data(), img_sub2.data(), W_sub1, H_sub1);
+    FG_ComputeCoeffs_Space(img_sub2.data(), a_sub2.data(), b_sub2.data(), W_sub2, H_sub2, 3, eps[1]);
 
-    // 【满分辨率空间：高精边缘双线性重构】
+    // 【满分辨率重建流】
     std::vector<double> full_a0(N), full_b0(N);
     std::vector<double> full_a1(N), full_b1(N);
 
-    // 拉伸两层的系数到满分辨率
-    FG_UpsampleBilinear(a_sub1.data(), full_a0.data(), W_sub1, H_sub1, W, H);
-    FG_UpsampleBilinear(b_sub1.data(), full_b0.data(), W_sub1, H_sub1, W, H);
-    FG_UpsampleBilinear(a_sub2.data(), full_a1.data(), W_sub2, H_sub2, W, H);
-    FG_UpsampleBilinear(b_sub2.data(), full_b1.data(), W_sub2, H_sub2, W, H);
+    // 调用通用对齐重构算子
+    FG_UpsampleBilinear_Generic(a_sub1.data(), full_a0.data(), W_sub1, H_sub1, W, H);
+    FG_UpsampleBilinear_Generic(b_sub1.data(), full_b0.data(), W_sub1, H_sub1, W, H);
+    FG_UpsampleBilinear_Generic(a_sub2.data(), full_a1.data(), W_sub2, H_sub2, W, H);
+    FG_UpsampleBilinear_Generic(b_sub2.data(), full_b1.data(), W_sub2, H_sub2, W, H);
+
+    FG_PostSmoothCoeffs(full_a1.data(), W, H);
+    FG_PostSmoothCoeffs(full_b1.data(), W, H);
 
 #pragma omp parallel for
     for (int i = 0; i < N; i++) {
-        // 利用两级上采样系数，借助各自的线性引导图，解耦还原高素质硬边缘
-        pyr_Base0[i] = full_a0[i] * logimage[i] + full_b0[i]; // 引导图是原图
-        pyr_Base1[i] = full_a1[i] * pyr_Base0[i] + full_b1[i]; // 引导图是第一层 Base0
+        pyr_Base0[i] = full_a0[i] * logimage[i] + full_b0[i];
+        pyr_Base1[i] = full_a1[i] * pyr_Base0[i] + full_b1[i];
 
-        // 干净利落的拉普拉斯频带剥离
-        pyr_Detail0[i] = logimage[i] - pyr_Base0[i]; // 超高频
-        pyr_Detail1[i] = pyr_Base0[i] - pyr_Base1[i]; // 纯净中频
+        pyr_Detail0[i] = logimage[i] - pyr_Base0[i];
+        pyr_Detail1[i] = pyr_Base0[i] - pyr_Base1[i];
     }
-
     // ---------- Step 3: Normalize & Base Mapping Statistics ----------
     double log_range = maxBPlog - minBPlog;
     if (log_range < 1e-6) log_range = 1e-6;
@@ -685,7 +707,7 @@ unsigned short* ELTM_pyr(int* rawdata_y, stISPParams* gISPparam)
         BPC_temp[i] = max(0.0, min(1.0, BPC_temp[i]));
     }
 
-    // ---------- Step 4: 自适应埃尔米特曲线生成（保持不变） ----------
+    // ---------- Step 4: 自适应埃尔米特曲线生成（还原第一版纯净逻辑） ----------
     int hist[256] = { 0 };
     for (int i = 0; i < N; i++) {
         int idx = (int)(BPC_temp[i] * 255);
@@ -726,28 +748,25 @@ unsigned short* ELTM_pyr(int* rawdata_y, stISPParams* gISPparam)
         splineLUT[i] = max(0.0, min(1.0, splineLUT[i]));
     }
 
-    // ---------- Step 5: Final 深度重构（抗锯齿+抗黑边双层精简版） ----------
+    // ---------- Step 5: Final 深度重构（还原第一版逻辑） ----------
 #pragma omp parallel for
     for (int i = 0; i < N; i++) {
         double cur_BPlog = (pyr_Base1[i] + beta) * alpha;
         double SG = (-0.4 * cur_BPlog > 1.0) ? (-0.4 * cur_BPlog) : 1.0;
         if (SG > 4.0) SG = 4.0;
 
-        // 双层细节流式融合
         double detail_log = eta[0] * SG * pyr_Detail0[i] +
             eta[1] * SG * pyr_Detail1[i];
 
-        // 抗锯齿边缘软化
+        // 抗锯齿边缘硬门限软化
         double raw_base_diff = logimage[i] - pyr_Base1[i];
         if (std::fabs(raw_base_diff) > 0.15) {
             double aa_weight = std::exp(-(std::fabs(raw_base_diff) - 0.15) * 2.0);
             detail_log *= (0.3 + 0.7 * aa_weight);
         }
 
-        // 曲线映射
         double BPC_finetuned = splineLUT[(int)(BPC_temp[i] * 1023.0)];
 
-        // 全局抗黑边
         if (detail_log < 0) {
             if (raw_base_diff > 0.1) {
                 double halo_suppress_factor = std::exp(-raw_base_diff * 5.0);
@@ -764,7 +783,6 @@ unsigned short* ELTM_pyr(int* rawdata_y, stISPParams* gISPparam)
             detail_log *= 0.05;
         }
 
-        // 反转线性域输出
         double DP = fast_pow10(detail_log);
         double YC = BPC_finetuned * DP;
 
@@ -775,7 +793,6 @@ unsigned short* ELTM_pyr(int* rawdata_y, stISPParams* gISPparam)
         result[i] = (unsigned short)max(0.0, min((double)maxsize, val));
     }
 
-    // ---------- 彻底清理内存 ----------
     free(logimage);
     free(pyr_Detail0);
     free(pyr_Detail1);
