@@ -150,49 +150,49 @@ void GetYdata(int* rawdata, int* rawdata_y, int H, int W)
 
 
 }
-// ±ß½çÀ©Õ¹£¨pad = °ë¾¶r£©
-// Ä£Ê½£ºBORDER_REPLICATE£¨¸´ÖÆ±ßÔµÏñËØ£©
+// è¾¹ç•Œæ‰©å±•ï¼ˆpad = åŠå¾„rï¼‰
+// æ¨¡å¼ï¼šBORDER_REPLICATEï¼ˆå¤åˆ¶è¾¹ç¼˜åƒç´ ï¼‰
 void extrnBoard(double* img, double* img_extraboard, int pad_w, int pad_h, int W, int H)
 {
     int extra_W = W + 2 * pad_w;
     int extra_H = H + 2 * pad_h;
 
-    // ÌîÖĞĞÄ
+    // å¡«ä¸­å¿ƒ
     for (int i = 0; i < H; i++) {
         for (int j = 0; j < W; j++) {
             img_extraboard[(i + pad_h) * extra_W + (j + pad_w)] = img[i * W + j];
         }
     }
 
-    // ÉÏÏÂ±ß½ç
+    // ä¸Šä¸‹è¾¹ç•Œ
     for (int i = 0; i < pad_h; i++) {
-        // ÉÏ±ß
+        // ä¸Šè¾¹
         for (int j = 0; j < W; j++) {
             img_extraboard[i * extra_W + (j + pad_w)] = img[0 * W + j];
         }
-        // ÏÂ±ß
+        // ä¸‹è¾¹
         for (int j = 0; j < W; j++) {
             img_extraboard[(i + H + pad_h) * extra_W + (j + pad_w)] = img[(H - 1) * W + j];
         }
     }
 
-    // ×óÓÒ±ß½ç£¨°üÀ¨À©Õ¹ºóµÄÉÏÏÂ±ß£©
+    // å·¦å³è¾¹ç•Œï¼ˆåŒ…æ‹¬æ‰©å±•åçš„ä¸Šä¸‹è¾¹ï¼‰
     for (int i = 0; i < extra_H; i++) {
-        // ×ó±ß
+        // å·¦è¾¹
         for (int j = 0; j < pad_w; j++) {
             img_extraboard[i * extra_W + j] = img_extraboard[i * extra_W + pad_w];
         }
-        // ÓÒ±ß
+        // å³è¾¹
         for (int j = 0; j < pad_w; j++) {
             img_extraboard[i * extra_W + (j + W + pad_w)] = img_extraboard[i * extra_W + (W + pad_w - 1)];
         }
     }
 }
 #if 0
-//Ô­Ê¼
+//åŸå§‹
 unsigned short* ELTM(int* rawdata_y, stISPParams* gISPparam)
 {
-    double lamda = gISPparam->tonemap_Param.lamda;//É«²Ê»Ö¸´
+    double lamda = gISPparam->tonemap_Param.lamda;//è‰²å½©æ¢å¤
     int PWLsize = gISPparam->tonemap_Param.PWLsize;
     double tauR = gISPparam->tonemap_Param.tauR;
     double P = gISPparam->tonemap_Param.P;
@@ -291,7 +291,7 @@ struct HermiteCoeffs {
     double a, b, c, d;
 };
 
-// ¼ÆËãÑùÌõÏµÊı¹¤¾ßº¯Êı
+// è®¡ç®—æ ·æ¡ç³»æ•°å·¥å…·å‡½æ•°
 HermiteCoeffs getHermiteCoeffs(double x0, double x1, double y0, double y1, double m0, double m1) {
     double L = x1 - x0;
     if (fabs(L) < 1e-8) L = 1e-8;
@@ -306,16 +306,16 @@ HermiteCoeffs getHermiteCoeffs(double x0, double x1, double y0, double y1, doubl
 }
 unsigned short* ELTM(int* rawdata_y, stISPParams* gISPparam)
 {
-    // ... Ô­ÓĞ²ÎÊıÌáÈ¡ ...
+    // ... åŸæœ‰å‚æ•°æå– ...
     double tauR = gISPparam->tonemap_Param.tauR;
     double P = gISPparam->tonemap_Param.P;
     double etaF = gISPparam->tonemap_Param.etaF;
     double etaC = gISPparam->tonemap_Param.etaC;
     double BPCmax = gISPparam->tonemap_Param.BPCmax;
     double BPCmin = gISPparam->tonemap_Param.BPCmin;
-    float shadow_boost = gISPparam->tonemap_Param.shadow_boost;         // ÓÃ»§²ÎÊı
-    float brightness_ratio = gISPparam->tonemap_Param.brightness_ratio; // ÓÃ»§²ÎÊı (Èç 1.0)
-    float contrast_k = gISPparam->tonemap_Param.contrast_k;             // ÓÃ»§²ÎÊı (Èç 1.0)
+    float shadow_boost = gISPparam->tonemap_Param.shadow_boost;         // ç”¨æˆ·å‚æ•°
+    float brightness_ratio = gISPparam->tonemap_Param.brightness_ratio; // ç”¨æˆ·å‚æ•° (å¦‚ 1.0)
+    float contrast_k = gISPparam->tonemap_Param.contrast_k;             // ç”¨æˆ·å‚æ•° (å¦‚ 1.0)
     float light_compress = gISPparam->tonemap_Param.light_compress;
     int W = gISPparam->rawinfo.W / 2;
     int H = gISPparam->rawinfo.H / 2;
@@ -327,7 +327,7 @@ unsigned short* ELTM(int* rawdata_y, stISPParams* gISPparam)
     double* DPClog = (double*)malloc(sizeof(double) * N);
     double* BPFlog = (double*)malloc(sizeof(double) * N);
     double* BPlog = (double*)malloc(sizeof(double) * N);
-    double* BPC_temp = (double*)malloc(sizeof(double) * N); // ´æ´¢»ù´¡Ó³Éä½á¹ûÓÃÓÚÍ³¼Æ
+    double* BPC_temp = (double*)malloc(sizeof(double) * N); // å­˜å‚¨åŸºç¡€æ˜ å°„ç»“æœç”¨äºç»Ÿè®¡
 
     double maxBPlog = -1e9, minBPlog = 1e9;
 
@@ -371,7 +371,7 @@ unsigned short* ELTM(int* rawdata_y, stISPParams* gISPparam)
         double tmp = (BP - BPmin) / diff + P;
         if (tmp < 1e-7) tmp = 1e-7;
 
-        // ¼ÆËã»ù´¡ BPC Ó³Éä
+        // è®¡ç®—åŸºç¡€ BPC æ˜ å°„
         BPC_temp[i] = (BPCmax - BPCmin) * (fast_log10(tmp) - logP) / denom + BPCmin;
         if (BPC_temp[i] < 0) BPC_temp[i] = 0;
         if (BPC_temp[i] > 1.0) BPC_temp[i] = 1.0;
@@ -379,38 +379,38 @@ unsigned short* ELTM(int* rawdata_y, stISPParams* gISPparam)
         sum_BPC += BPC_temp[i];
     }
 
-    // ---------- Step 4: ×ÔÊÊÓ¦°£¶ûÃ×ÌØÇúÏßÉú³É ----------
- // 1. Í³¼Æ 256 ¼¶Ö±·½Í¼
+    // ---------- Step 4: è‡ªé€‚åº”åŸƒå°”ç±³ç‰¹æ›²çº¿ç”Ÿæˆ ----------
+ // 1. ç»Ÿè®¡ 256 çº§ç›´æ–¹å›¾
     int hist[256] = { 0 };
     for (int i = 0; i < N; i++) {
-        int idx = (int)(BPC_temp[i] * 255); // ¼ÙÉèÊäÈëÒÑ¹éÒ»»¯
+        int idx = (int)(BPC_temp[i] * 255); // å‡è®¾è¾“å…¥å·²å½’ä¸€åŒ–
         hist[idx]++;
     }
 
-    // 2. ¼ÆËã CDF ÕÒµ½ÖĞÖµµã L50
+    // 2. è®¡ç®— CDF æ‰¾åˆ°ä¸­å€¼ç‚¹ L50
     int sum = 0;
-    double L50 = 0.1; // Ä¬ÈÏÖµ
+    double L50 = 0.1; // é»˜è®¤å€¼
     for (int i = 0; i < 256; i++) {
         sum += hist[i];
-        if (sum >= N * 0.5) { // ÕÒµ½ 50% ÏñËØËùÔÚµÄÁÁ¶È
+        if (sum >= N * 0.5) { // æ‰¾åˆ° 50% åƒç´ æ‰€åœ¨çš„äº®åº¦
             L50 = i / 255.0;
             break;
         }
     }
 
-    // 3. ¶¯Ì¬Î¢µ÷ P ºÍ ÑùÌõÃªµã Pin
-    double adaptive_P = L50 * 0.8; // ÕâÊÇÒ»¸ö¼òµ¥µÄÏßĞÔÓ³Éä¹ØÏµ
-    double P_in = L50;             // ½«ÑùÌõÃªµãÖ±½ÓËø¶¨ÔÚÍ¼ÏñÖĞµã
+    // 3. åŠ¨æ€å¾®è°ƒ P å’Œ æ ·æ¡é”šç‚¹ Pin
+    double adaptive_P = L50 * 0.8; // è¿™æ˜¯ä¸€ä¸ªç®€å•çš„çº¿æ€§æ˜ å°„å…³ç³»
+    double P_in = L50;             // å°†æ ·æ¡é”šç‚¹ç›´æ¥é”å®šåœ¨å›¾åƒä¸­ç‚¹
 
-    // P_out ÎªÏà¶ÔÁÁ¶Èµ÷Õû¡£brightness_ratio = 1.0 Ê±²»¸Ä±ä P
-    // Ê¹ÓÃÏßĞÔÔöÁ¿±ÜÃâÏñ³Ë·¨ÄÇÑùµ¼ÖÂ¸ßÁÁÇø¹ı¿ìÒç³ö
+    // P_out ä¸ºç›¸å¯¹äº®åº¦è°ƒæ•´ã€‚brightness_ratio = 1.0 æ—¶ä¸æ”¹å˜ P
+    // ä½¿ç”¨çº¿æ€§å¢é‡é¿å…åƒä¹˜æ³•é‚£æ ·å¯¼è‡´é«˜äº®åŒºè¿‡å¿«æº¢å‡º
     double P_out = P_in + (brightness_ratio - 1.0f) * 0.2f;
     P_out = (P_out < 0.05) ? 0.05 : (P_out > 0.95 ? 0.95 : P_out);
 
-    // Ğ±ÂÊÉèÖÃ
-    double m_start = 1.0 + shadow_boost; // °µ²¿ÌáÁÁ
-    double m_pivot = contrast_k;         // Ğı×ªÖĞĞÄ¶Ô±È¶È
-    double m_end = light_compress;                  // ¸ß¹âÊÕÁ²
+    // æ–œç‡è®¾ç½®
+    double m_start = 1.0 + shadow_boost; // æš—éƒ¨æäº®
+    double m_pivot = contrast_k;         // æ—‹è½¬ä¸­å¿ƒå¯¹æ¯”åº¦
+    double m_end = light_compress;                  // é«˜å…‰æ”¶æ•›
 
     HermiteCoeffs segA = getHermiteCoeffs(0.0, P_in, 0.0, P_out, m_start, m_pivot);
     HermiteCoeffs segB = getHermiteCoeffs(P_in, 1.0, P_out, 1.0, m_pivot, m_end);
@@ -433,35 +433,35 @@ unsigned short* ELTM(int* rawdata_y, stISPParams* gISPparam)
     // ---------- Step 5: Final Loop with Fine-tuning ----------
 #pragma omp parallel for
     for (int i = 0; i < N; i++) {
-        // 1. ÔöÒæ¿ØÖÆ SG
+        // 1. å¢ç›Šæ§åˆ¶ SG
         double cur_BPlog = (BPlog[i] + beta) * alpha;
         double SG = (-0.4 * cur_BPlog > 1.0) ? (-0.4 * cur_BPlog) : 1.0;
         if (SG > 4.0) SG = 4.0;
 
-        // 2. Ï¸½Ú²ãºÏ³É (º¬Ô­ÓĞµÄºÚµã±£»¤)
+        // 2. ç»†èŠ‚å±‚åˆæˆ (å«åŸæœ‰çš„é»‘ç‚¹ä¿æŠ¤)
         double detail_log = etaF * SG * DPFlog[i] + etaC * SG * DPClog[i];
 
 
-        // 3. »ù´¡Ó³Éä + °£¶ûÃ×ÌØÎ¢µ÷
-        // BPC_temp[i] ÊÇÒÑ¾­Ó³Éäµ½ 0~1 µÄ»ù´¡²ã
+        // 3. åŸºç¡€æ˜ å°„ + åŸƒå°”ç±³ç‰¹å¾®è°ƒ
+        // BPC_temp[i] æ˜¯å·²ç»æ˜ å°„åˆ° 0~1 çš„åŸºç¡€å±‚
         double BPC_finetuned = splineLUT[(int)(BPC_temp[i] * 1023.0)];
         double bright_th = 0.7;
         if (BPC_finetuned > bright_th) {
             double weight = (BPC_finetuned - bright_th) / (1.0 - bright_th);
-            // Èç¹û detail ÊÇ¸ºµÄ£¨²úÉúºÚ±ßµÄÔªĞ×£©£¬Ôò¸ù¾İÁÁ¶ÈÇ¿ĞĞÀ­»Ø 0
+            // å¦‚æœ detail æ˜¯è´Ÿçš„ï¼ˆäº§ç”Ÿé»‘è¾¹çš„å…ƒå‡¶ï¼‰ï¼Œåˆ™æ ¹æ®äº®åº¦å¼ºè¡Œæ‹‰å› 0
             if (detail_log < 0) {
-                detail_log = detail_log * (1.0 - weight * 0.9); // Ñ¹ÖÆ 90% µÄ¸ºÏ¸½Ú
+                detail_log = detail_log * (1.0 - weight * 0.9); // å‹åˆ¶ 90% çš„è´Ÿç»†èŠ‚
             }
         }
 
-        // --- ¡¾ĞÂÔö£ºÎ±É«Ñ¹ÖÆÂß¼­£¨¸ß¹âÈ¥±¥ºÍÔ¤´¦Àí£©¡¿ ---
-        // Èç¹û¸Ãµã·Ç³£½Ó½ü±¥ºÍ£¬ÎÒÃÇ¿ÉÒÔÇ¿ÖÆÈÃ DP Ç÷ÏòÓÚ 1.0£¨¼´¶ÔÊıÓòÇ÷Ïò 0£©
-        // ÕâÑùÕâÒ»µãµÄÑÕÉ«½«ÍêÈ«ÓÉÆ½»¬µÄ Base ²ã¾ö¶¨£¬±ÜÃâ Demosaic ²åÖµ³ö¹ÖÉ«
+        // --- ã€æ–°å¢ï¼šä¼ªè‰²å‹åˆ¶é€»è¾‘ï¼ˆé«˜å…‰å»é¥±å’Œé¢„å¤„ç†ï¼‰ã€‘ ---
+        // å¦‚æœè¯¥ç‚¹éå¸¸æ¥è¿‘é¥±å’Œï¼Œæˆ‘ä»¬å¯ä»¥å¼ºåˆ¶è®© DP è¶‹å‘äº 1.0ï¼ˆå³å¯¹æ•°åŸŸè¶‹å‘ 0ï¼‰
+        // è¿™æ ·è¿™ä¸€ç‚¹çš„é¢œè‰²å°†å®Œå…¨ç”±å¹³æ»‘çš„ Base å±‚å†³å®šï¼Œé¿å… Demosaic æ’å€¼å‡ºæ€ªè‰²
         if (BPC_finetuned > 0.9) {
             detail_log *= 0.1;
         }
         double DP = fast_pow10(detail_log);
-        // 4. ×îÖÕºÏ³É
+        // 4. æœ€ç»ˆåˆæˆ
         double YC = BPC_finetuned * DP;
         double val = YC * maxsize;
 
@@ -479,6 +479,313 @@ unsigned short* ELTM(int* rawdata_y, stISPParams* gISPparam)
     std::free(BPC_temp);
     return result;
 }
+
+
+// ---------- 2. ä¼˜åŒ–é‡æ„åçš„åŒå±‚çº§è”é‡‘å­—å¡” ELTM ä¸»å‡½æ•° ----------
+static void FG_Downsample2x(const double* src, double* dst, int W, int H) {
+    int dstW = W / 2;
+    int dstH = H / 2;
+#pragma omp parallel for
+    for (int y = 0; y < dstH; ++y) {
+        for (int x = 0; x < dstW; ++x) {
+            int srcX = x * 2;
+            int srcY = y * 2;
+            dst[y * dstW + x] = (src[srcY * W + srcX] +
+                src[srcY * W + (srcX + 1)] +
+                src[(srcY + 1) * W + srcX] +
+                src[(srcY + 1) * W + (srcX + 1)]) * 0.25;
+        }
+    }
+}
+
+// ä»»æ„è·¨åº¦ä¸­å¿ƒå¯¹é½åŒçº¿æ€§ä¸Šé‡‡æ · (ä» srcW/srcH å®Œç¾æ‹‰ä¼¸åˆ° dstW/dstH)
+static void FG_UpsampleBilinear(const double* src, double* dst, int srcW, int srcH, int dstW, int dstH) {
+    double scaleX = (double)srcW / dstW;
+    double scaleY = (double)srcH / dstH;
+#pragma omp parallel for
+    for (int y = 0; y < dstH; ++y) {
+        double srcY = (y + 0.5) * scaleY - 0.5;
+        int y0 = max(0, min((int)std::floor(srcY), srcH - 1));
+        int y1 = max(0, min(y0 + 1, srcH - 1));
+        double v = srcY - y0;
+
+        for (int x = 0; x < dstW; ++x) {
+            double srcX = (x + 0.5) * scaleX - 0.5;
+            int x0 = max(0, min((int)std::floor(srcX), srcW - 1));
+            int x1 = max(0, min(x0 + 1, srcX - 1));
+            double u = srcX - x0;
+
+            dst[y * dstW + x] = (1.0 - u) * (1.0 - v) * src[y0 * srcW + x0] +
+                u * (1.0 - v) * src[y0 * srcW + x1] +
+                (1.0 - u) * v * src[y1 * srcW + x0] +
+                u * v * src[y1 * srcW + x1];
+        }
+    }
+}
+
+// åŸºç¡€ä¸€ç»´åˆ†ç¦»å¼ Box Blur (åªåœ¨å½“å‰åˆ†è¾¨ç‡ç©ºé—´å†…è¿è¡Œ)
+static void FG_BoxBlur_Space(const double* src, double* dst, int W, int H, int r) {
+    std::vector<double> tmp(W * H);
+#pragma omp parallel for
+    for (int y = 0; y < H; ++y) {
+        for (int x = 0; x < W; ++x) {
+            double sum = 0.0;
+            int count = 0;
+            for (int k = -r; k <= r; ++k) {
+                int nx = max(0, min(W - 1, x + k));
+                sum += src[y * W + nx];
+                count++;
+            }
+            tmp[y * W + x] = sum / count;
+        }
+    }
+#pragma omp parallel for
+    for (int y = 0; y < H; ++y) {
+        for (int x = 0; x < W; ++x) {
+            double sum = 0.0;
+            int count = 0;
+            for (int k = -r; k <= r; ++k) {
+                int ny = max(0, min(H - 1, y + k));
+                sum += tmp[ny * W + x];
+                count++;
+            }
+            dst[y * W + x] = sum / count;
+        }
+    }
+}
+
+// åœ¨å½“å‰ç©ºé—´è®¡ç®—è‡ªå¯¼å‘ç³»æ•° a å’Œ b
+static void FG_ComputeCoeffs_Space(const double* I, double* out_a, double* out_b, int W, int H, int r, double eps) {
+    int N = W * H;
+    std::vector<double> II(N);
+#pragma omp parallel for
+    for (int i = 0; i < N; ++i) II[i] = I[i] * I[i];
+
+    std::vector<double> mean_I(N);
+    std::vector<double> mean_II(N);
+    FG_BoxBlur_Space(I, mean_I.data(), W, H, r);
+    FG_BoxBlur_Space(II.data(), mean_II.data(), W, H, r);
+
+#pragma omp parallel for
+    for (int i = 0; i < N; ++i) {
+        double var_I = mean_II[i] - mean_I[i] * mean_I[i];
+        if (var_I < 0.0) var_I = 0.0;
+        out_a[i] = var_I / (var_I + eps);
+        out_b[i] = mean_I[i] - out_a[i] * mean_I[i];
+    }
+}
+
+// ---------- 2. çœŸæ­£çº§è”çš„æµå¼å¯¼å‘é‡‘å­—å¡” ELTM å‡½æ•° ----------
+unsigned short* ELTM_pyr(int* rawdata_y, stISPParams* gISPparam)
+{
+    // ---------- æå–ç”¨æˆ·å’Œç³»ç»Ÿå‚æ•° ----------
+    double tauR = gISPparam->tonemap_Param.tauR;
+    double P = gISPparam->tonemap_Param.P;
+    float shadow_boost = gISPparam->tonemap_Param.shadow_boost;
+    float brightness_ratio = gISPparam->tonemap_Param.brightness_ratio;
+    float contrast_k = gISPparam->tonemap_Param.contrast_k;
+    float light_compress = gISPparam->tonemap_Param.light_compress;
+
+    double eta[2] = { gISPparam->tonemap_Param.etaF, gISPparam->tonemap_Param.etaC };
+    double edge_sigma_r[2] = { 0.04, 0.12 };
+    double eps[2] = { edge_sigma_r[0] * edge_sigma_r[0], edge_sigma_r[1] * edge_sigma_r[1] };
+
+    int W = gISPparam->rawinfo.W / 2;
+    int H = gISPparam->rawinfo.H / 2;
+    int N = H * W;
+    int maxsize = (1 << gISPparam->tonemap_Param.TMPoutbit) - 1;
+
+    unsigned short* result = (unsigned short*)malloc(sizeof(unsigned short) * N);
+    double* logimage = (double*)malloc(sizeof(double) * N);
+
+    // æ»¡åˆ†è¾¨ç‡å›¾å±‚ç¼“å­˜
+    double* pyr_Detail0 = (double*)malloc(sizeof(double) * N);
+    double* pyr_Detail1 = (double*)malloc(sizeof(double) * N);
+    double* pyr_Base0 = (double*)malloc(sizeof(double) * N);
+    double* pyr_Base1 = (double*)malloc(sizeof(double) * N);
+    double* BPC_temp = (double*)malloc(sizeof(double) * N);
+
+    double maxBPlog = -1e9, minBPlog = 1e9;
+
+    // ---------- Step 1: Log transform ----------
+#pragma omp parallel for reduction(max:maxBPlog) reduction(min:minBPlog)
+    for (int i = 0; i < N; i++) {
+        logimage[i] = (rawdata_y[i] <= 0) ? 0.0 : fast_log10((double)rawdata_y[i]);
+        if (logimage[i] > maxBPlog) maxBPlog = logimage[i];
+        if (logimage[i] < minBPlog) minBPlog = logimage[i];
+    }
+
+    // ---------- Step 2: çœŸæ­£çº§è”çš„å¤šå°ºåº¦ç©ºé—´æµå¼åˆ†è§£ ----------
+
+    // ã€1/2 åˆ†è¾¨ç‡å­ç©ºé—´ã€‘ 
+    int W_sub1 = W / 2, H_sub1 = H / 2;
+    std::vector<double> img_sub1(W_sub1 * H_sub1);
+    std::vector<double> a_sub1(W_sub1 * H_sub1), b_sub1(W_sub1 * H_sub1);
+    std::vector<double> base_sub1(W_sub1 * H_sub1);
+
+    FG_Downsample2x(logimage, img_sub1.data(), W, H); // ä¸‹é‡‡æ ·åŸå›¾è‡³ 1/2
+    FG_ComputeCoeffs_Space(img_sub1.data(), a_sub1.data(), b_sub1.data(), W_sub1, H_sub1, 2, eps[0]); // ç®—ç¬¬ä¸€å±‚a,b
+#pragma omp parallel for
+    for (int i = 0; i < W_sub1 * H_sub1; ++i) {
+        base_sub1[i] = a_sub1[i] * img_sub1[i] + b_sub1[i]; // åœ¨ 1/2 ç©ºé—´ç›´æ¥é‡æ„å‡ºä½é¢‘ Base0_sub
+    }
+
+    // ã€1/4 åˆ†è¾¨ç‡å­ç©ºé—´ã€‘
+    int W_sub2 = W_sub1 / 2, H_sub2 = H_sub1 / 2;
+    std::vector<double> img_sub2(W_sub2 * H_sub2);
+    std::vector<double> a_sub2(W_sub2 * H_sub2), b_sub2(W_sub2 * H_sub2);
+
+    FG_Downsample2x(base_sub1.data(), img_sub2.data(), W_sub1, H_sub1); // ä» Base0_sub ç»§ç»­ä¸‹é‡‡æ ·åˆ° 1/4 ç©ºé—´
+    FG_ComputeCoeffs_Space(img_sub2.data(), a_sub2.data(), b_sub2.data(), W_sub2, H_sub2, 3, eps[1]); // ç®—ç¬¬äºŒå±‚a,b
+
+    // ã€æ»¡åˆ†è¾¨ç‡ç©ºé—´ï¼šé«˜ç²¾è¾¹ç¼˜åŒçº¿æ€§é‡æ„ã€‘
+    std::vector<double> full_a0(N), full_b0(N);
+    std::vector<double> full_a1(N), full_b1(N);
+
+    // æ‹‰ä¼¸ä¸¤å±‚çš„ç³»æ•°åˆ°æ»¡åˆ†è¾¨ç‡
+    FG_UpsampleBilinear(a_sub1.data(), full_a0.data(), W_sub1, H_sub1, W, H);
+    FG_UpsampleBilinear(b_sub1.data(), full_b0.data(), W_sub1, H_sub1, W, H);
+    FG_UpsampleBilinear(a_sub2.data(), full_a1.data(), W_sub2, H_sub2, W, H);
+    FG_UpsampleBilinear(b_sub2.data(), full_b1.data(), W_sub2, H_sub2, W, H);
+
+#pragma omp parallel for
+    for (int i = 0; i < N; i++) {
+        // åˆ©ç”¨ä¸¤çº§ä¸Šé‡‡æ ·ç³»æ•°ï¼Œå€ŸåŠ©å„è‡ªçš„çº¿æ€§å¼•å¯¼å›¾ï¼Œè§£è€¦è¿˜åŸé«˜ç´ è´¨ç¡¬è¾¹ç¼˜
+        pyr_Base0[i] = full_a0[i] * logimage[i] + full_b0[i]; // å¼•å¯¼å›¾æ˜¯åŸå›¾
+        pyr_Base1[i] = full_a1[i] * pyr_Base0[i] + full_b1[i]; // å¼•å¯¼å›¾æ˜¯ç¬¬ä¸€å±‚ Base0
+
+        // å¹²å‡€åˆ©è½çš„æ‹‰æ™®æ‹‰æ–¯é¢‘å¸¦å‰¥ç¦»
+        pyr_Detail0[i] = logimage[i] - pyr_Base0[i]; // è¶…é«˜é¢‘
+        pyr_Detail1[i] = pyr_Base0[i] - pyr_Base1[i]; // çº¯å‡€ä¸­é¢‘
+    }
+
+    // ---------- Step 3: Normalize & Base Mapping Statistics ----------
+    double log_range = maxBPlog - minBPlog;
+    if (log_range < 1e-6) log_range = 1e-6;
+    double beta = -maxBPlog;
+    double alpha = tauR / log_range;
+
+    double BPmin = fast_pow10((minBPlog + beta) * alpha);
+    double BPmax = fast_pow10((maxBPlog + beta) * alpha);
+    double logP = fast_log10(P);
+    double log1pP = fast_log10(1.0 + P);
+    double denom = log1pP - logP;
+    if (fabs(denom) < 1e-8) denom = 1e-8;
+
+#pragma omp parallel for
+    for (int i = 0; i < N; i++) {
+        double cur_BPlog = (pyr_Base1[i] + beta) * alpha;
+        double BP = fast_pow10(cur_BPlog);
+        double diff = BPmax - BPmin;
+        if (diff < 1e-8) diff = 1e-8;
+        double tmp = (BP - BPmin) / diff + P;
+        if (tmp < 1e-7) tmp = 1e-7;
+
+        BPC_temp[i] = (gISPparam->tonemap_Param.BPCmax - gISPparam->tonemap_Param.BPCmin) * (fast_log10(tmp) - logP) / denom + gISPparam->tonemap_Param.BPCmin;
+        BPC_temp[i] = max(0.0, min(1.0, BPC_temp[i]));
+    }
+
+    // ---------- Step 4: è‡ªé€‚åº”åŸƒå°”ç±³ç‰¹æ›²çº¿ç”Ÿæˆï¼ˆä¿æŒä¸å˜ï¼‰ ----------
+    int hist[256] = { 0 };
+    for (int i = 0; i < N; i++) {
+        int idx = (int)(BPC_temp[i] * 255);
+        hist[max(0, min(255, idx))]++;
+    }
+
+    int sum = 0;
+    double L50 = 0.1;
+    for (int i = 0; i < 256; i++) {
+        sum += hist[i];
+        if (sum >= N * 0.5) {
+            L50 = i / 255.0;
+            break;
+        }
+    }
+
+    double P_in = L50;
+    double P_out = P_in + (brightness_ratio - 1.0f) * 0.2f;
+    P_out = max(0.05, min(0.95, P_out));
+
+    double m_start = 1.0 + shadow_boost;
+    double m_pivot = contrast_k;
+    double m_end = light_compress;
+
+    HermiteCoeffs segA = getHermiteCoeffs(0.0, P_in, 0.0, P_out, m_start, m_pivot);
+    HermiteCoeffs segB = getHermiteCoeffs(P_in, 1.0, P_out, 1.0, m_pivot, m_end);
+
+    double splineLUT[1024];
+    for (int i = 0; i < 1024; i++) {
+        double x = i / 1023.0;
+        if (x < P_in) {
+            splineLUT[i] = segA.a * x * x * x + segA.b * x * x + segA.c * x + segA.d;
+        }
+        else {
+            double t = x - P_in;
+            splineLUT[i] = segB.a * t * t * t + segB.b * t * t + segB.c * t + segB.d;
+        }
+        splineLUT[i] = max(0.0, min(1.0, splineLUT[i]));
+    }
+
+    // ---------- Step 5: Final æ·±åº¦é‡æ„ï¼ˆæŠ—é”¯é½¿+æŠ—é»‘è¾¹åŒå±‚ç²¾ç®€ç‰ˆï¼‰ ----------
+#pragma omp parallel for
+    for (int i = 0; i < N; i++) {
+        double cur_BPlog = (pyr_Base1[i] + beta) * alpha;
+        double SG = (-0.4 * cur_BPlog > 1.0) ? (-0.4 * cur_BPlog) : 1.0;
+        if (SG > 4.0) SG = 4.0;
+
+        // åŒå±‚ç»†èŠ‚æµå¼èåˆ
+        double detail_log = eta[0] * SG * pyr_Detail0[i] +
+            eta[1] * SG * pyr_Detail1[i];
+
+        // æŠ—é”¯é½¿è¾¹ç¼˜è½¯åŒ–
+        double raw_base_diff = logimage[i] - pyr_Base1[i];
+        if (std::fabs(raw_base_diff) > 0.15) {
+            double aa_weight = std::exp(-(std::fabs(raw_base_diff) - 0.15) * 2.0);
+            detail_log *= (0.3 + 0.7 * aa_weight);
+        }
+
+        // æ›²çº¿æ˜ å°„
+        double BPC_finetuned = splineLUT[(int)(BPC_temp[i] * 1023.0)];
+
+        // å…¨å±€æŠ—é»‘è¾¹
+        if (detail_log < 0) {
+            if (raw_base_diff > 0.1) {
+                double halo_suppress_factor = std::exp(-raw_base_diff * 5.0);
+                detail_log *= halo_suppress_factor;
+            }
+            double dark_th = 0.35;
+            if (BPC_finetuned < dark_th) {
+                double weight = (dark_th - BPC_finetuned) / dark_th;
+                detail_log = detail_log * (1.0 - weight * 0.92);
+            }
+        }
+
+        if (BPC_finetuned > 0.9) {
+            detail_log *= 0.05;
+        }
+
+        // åè½¬çº¿æ€§åŸŸè¾“å‡º
+        double DP = fast_pow10(detail_log);
+        double YC = BPC_finetuned * DP;
+
+        double safety_floor = BPC_finetuned * 0.25;
+        if (YC < safety_floor) YC = safety_floor;
+
+        double val = YC * maxsize;
+        result[i] = (unsigned short)max(0.0, min((double)maxsize, val));
+    }
+
+    // ---------- å½»åº•æ¸…ç†å†…å­˜ ----------
+    free(logimage);
+    free(pyr_Detail0);
+    free(pyr_Detail1);
+    free(pyr_Base0);
+    free(pyr_Base1);
+    free(BPC_temp);
+
+    return result;
+}
+/******************************************************/
 int Run_tmp(stISPParams* gISPparam, u32* decompanddata,u16 *tmpdata)
 {
     int H = gISPparam->rawinfo.H;
@@ -492,7 +799,7 @@ int Run_tmp(stISPParams* gISPparam, u32* decompanddata,u16 *tmpdata)
     unsigned short* result_y = (unsigned short*)malloc(imagesize * sizeof(unsigned short) / 4);
     int Hight = H / 2;
     int weight = W / 2;
-    result_y = ELTM(rawdata_y, gISPparam);
+    result_y = ELTM_pyr(rawdata_y, gISPparam);
     float lamda = gISPparam->tonemap_Param.lamda;
     u16* resultWhole = (u16*)malloc(sizeof(u16) * Hight * weight * 4);
     int maxsize = (1 << gISPparam->tonemap_Param.TMPoutbit)-1 ;
