@@ -229,6 +229,10 @@ stISPParams gISPparamLinear = {
 		.contrastbit = 8,
 		.ContrastStrength = 128
 	},
+	.saturation_Param = {
+		.enable = 1,
+		.strength=256
+	},
 	.ldciParam = {.enable = 1},
 	.sharpen_Param = {
 		.enable = 1,
