@@ -1,4 +1,4 @@
-﻿#include<iostream>
+#include<iostream>
 #include <objbase.h> // 必须包含
 #include <windows.h>
 #include <commdlg.h> // 必须包含这个头文件
@@ -19,6 +19,7 @@ extern stISPParams gISPparamHDRcombine;
 extern stISPParams gISPparamLinear;
 extern stRawInfo  grawinfo;
 extern eISPMode g_current_mode;
+static std::string g_current_config_path = "";
 #if !GUI
 int main()
 {
@@ -99,6 +100,43 @@ void CleanupDeviceD3D();
 void CreateRenderTarget();
 void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+#include <fstream>
+
+void SaveParam(const std::string& path, const stISPParams& param)
+{
+    std::ofstream ofs(path, std::ios::binary);
+    if (!ofs) return;
+
+    ofs.write(reinterpret_cast<const char*>(&param), sizeof(stISPParams));
+}
+
+bool LoadParam(const std::string& path, stISPParams& param)
+{
+    std::ifstream ifs(path, std::ios::binary);
+    if (!ifs) return false;
+
+    ifs.read(reinterpret_cast<char*>(&param), sizeof(stISPParams));
+    return true;
+}
+std::string SaveFileDialog(HWND hwnd)
+{
+    char filename[MAX_PATH] = "";
+
+    OPENFILENAMEA ofn = {};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFilter = "BIN Files\0*.bin\0All Files\0*.*\0";
+    ofn.lpstrFile = filename;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_OVERWRITEPROMPT;
+    ofn.lpstrDefExt = "bin";
+
+    if (GetSaveFileNameA(&ofn))
+        return filename;
+
+    return "";
+}
 void RenderISPParameterWindow() {
     ImGuiIO& io = ImGui::GetIO();
     ImGui::SetNextWindowPos(ImVec2(0, 0));
@@ -207,6 +245,8 @@ void RenderISPParameterWindow() {
             ImGui::Text("%s", label);
             ImGui::PopID();
         }
+        bool en = gISPparamHDRcombine.depwl_param.enSliceraw;
+        if (ImGui::Checkbox("Enable Sliceraw", &en)) gISPparamHDRcombine.depwl_param.enSliceraw = en;
 
     }
         //--3.dpc
@@ -337,7 +377,10 @@ void RenderISPParameterWindow() {
             ImGui::InputInt("sharpen bit", &sharpenbit);
             gISPparamHDRcombine.sharpen_Param.sharpenbit = sharpenbit;
         }
-        ImGui::Separator();
+
+
+
+
     }
     if (g_current_mode == ISPLinear)
     {
@@ -493,10 +536,55 @@ void RenderISPParameterWindow() {
             gISPparamLinear.sharpen_Param.sharpenbit = sharpenbit;
 
         }
-        ImGui::Separator();
-    }
 
-  
+    }
+    if (ImGui::Button("Load Config", ImVec2(120, 40)))
+    {
+        std::string path = OpenFileDialog(NULL);
+
+        if (!path.empty())
+        {
+            bool ok = false;
+
+            if (g_current_mode == ISPCombined)
+                ok = LoadParam(path, gISPparamHDRcombine);
+            else
+                ok = LoadParam(path, gISPparamLinear);
+
+            if (ok)
+                g_current_config_path = path;
+        }
+    }
+    ImGui::SameLine();
+
+    if (ImGui::Button("Save As", ImVec2(120, 40)))
+    {
+        std::string path = SaveFileDialog(NULL);
+
+        if (!path.empty())
+        {
+            if (g_current_mode == ISPCombined)
+                SaveParam(path, gISPparamHDRcombine);
+            else
+                SaveParam(path, gISPparamLinear);
+
+            g_current_config_path = path;
+        }
+    }
+    ImGui::SameLine();
+
+    if (ImGui::Button("Save Config", ImVec2(120, 40)))
+    {
+        if (!g_current_config_path.empty())
+        {
+            if (g_current_mode == ISPCombined)
+                SaveParam(g_current_config_path, gISPparamHDRcombine);
+            else
+                SaveParam(g_current_config_path, gISPparamLinear);
+        }
+    }
+    ImGui::Text("Current Config: %s",
+        g_current_config_path.empty() ? "None" : g_current_config_path.c_str());
 
     // --- Buttons ---
     static std::string status = "Ready";
@@ -520,7 +608,7 @@ void RenderISPParameterWindow() {
 int main(int, char**)
 {
     printf("****************************************Raw 2 JPG**************************************************\n");
-    printf("****************************************By fyj 20260402********************************************\n");
+    //printf("****************************************By fyj 20260402********************************************\n");
     SetProcessDPIAware();
    
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
@@ -540,6 +628,9 @@ int main(int, char**)
     ImGui::CreateContext();
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
+
+    LoadParam("hdr.bin", gISPparamHDRcombine);
+    LoadParam("linear.bin", gISPparamLinear);
 
     bool done = false;
     while (!done) {
