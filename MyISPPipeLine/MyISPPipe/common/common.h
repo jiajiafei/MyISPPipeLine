@@ -25,9 +25,10 @@ typedef enum tagBayerPattern
 typedef struct ISPParam_depwl
 {
 	u8 enable;
-	u32 * x;
-	u32 * y;
+	u32  x[36];
+	u32  y[36];
 	u8 neepoint;
+	u8 enSliceraw;
 
 }ISPParam_depwl;
 
@@ -87,7 +88,7 @@ typedef struct ISPParam_rnr
 typedef struct ISPParam_tonemap
 {
 	u8 enable ;
-	double lamda ;//ɫ�ʻָ�
+	double lamda ;//É«²Ê»Ö¸´
 	int PWLsize ;
 	double tauR ;
 	double P ;
