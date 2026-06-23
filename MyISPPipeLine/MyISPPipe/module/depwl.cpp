@@ -49,7 +49,7 @@ int Run_depwl(stISPParams* gISPparam, u16* Rawdata, u32* decompanddata)
     {
         for (int i = 0; i < gISPparam->rawinfo.H * gISPparam->rawinfo.W; i++)
         {
-            //需要转到12bit
+            //脨猫脪陋脳陋碌陆12bit
             if (16 == current_bit)
             {
                 Rawdata[i] = (Rawdata[i]) >> 4;
@@ -58,11 +58,30 @@ int Run_depwl(stISPParams* gISPparam, u16* Rawdata, u32* decompanddata)
             decompanddata[i] = Map[Rawdata[i]];
         }
     }
+            if (gISPparam->depwl_param.enSliceraw ==1)
+        {
+            u16 bit = 0xff;
+            u8* sliceimage = (u8*)malloc(sizeof(u8) * gISPparam->rawinfo.H * gISPparam->rawinfo.W*3);
+            for (int i = 0; i < 17; i++)
+            {
+                for (int j = 0; j < gISPparam->rawinfo.H * gISPparam->rawinfo.W; j++)
+                {
+                    int temp = decompanddata[j];
+                    sliceimage[j] = (temp & (bit << i)) >> i;
+                    sliceimage[j+ gISPparam->rawinfo.H * gISPparam->rawinfo.W] = sliceimage[j];
+                    sliceimage[j+2* gISPparam->rawinfo.H * gISPparam->rawinfo.W] = sliceimage[j];
+                }
+                std::string filename = std::to_string(i)+"-"+ std::to_string(i + 7) + "bit_output.jpg";
+                debug_write8bit_image(gISPparam->rawinfo.H, gISPparam->rawinfo.W, sliceimage, filename.c_str());
+            }
+
+
+        }
     if (ispmode==ISPLinear)
     {
         for (int i = 0; i < gISPparam->rawinfo.H * gISPparam->rawinfo.W; i++)
         {
-            //需要转到12bit
+            //脨猫脪陋脳陋碌陆12bit
             if (12 == current_bit)
             {
                 Rawdata[i] = (Rawdata[i]) << 4;
