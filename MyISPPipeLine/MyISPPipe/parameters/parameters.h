@@ -26,6 +26,7 @@ typedef struct tagISPParams
 	ISPParam_ccm ccm_Param;
 	ISPParam_gamma gamma_Param;
 	ISPParam_contrast contrast_Param;
+	ISPParam_saturation saturation_Param;
 	ISPParam_ldci ldciParam;
 	ISPParam_sharpen sharpen_Param;
 	stRawInfo rawinfo;
