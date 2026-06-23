@@ -157,6 +157,13 @@ typedef struct ISPParam_ldci
 
 
 }ISPParam_ldci;
+typedef struct ISPParam_saturation
+{
+	u8 enable;
+	unsigned short strength;
+
+
+}ISPParam_saturation;
 typedef struct ISPParam_sharpen
 {
 	u8 enable ;
