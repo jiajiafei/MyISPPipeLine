@@ -11,6 +11,7 @@
 #include"../module/ccm.h"
 #include"../module/gamma.h"
 #include"../module/contrast.h"
+#include"../module/saturation.h"
 #include"../module/RNR.h"
 #include"../module/sharpen.h"
 #include"../module/awb.h"
