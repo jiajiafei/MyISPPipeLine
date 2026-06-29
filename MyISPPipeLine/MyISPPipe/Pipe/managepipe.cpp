@@ -11,14 +11,14 @@ u16* data_extern = NULL;
 stISPParams* gISPparam = NULL;
 static int firstRun = 0;
 eISPMode g_current_mode = ISPCombined;
- char current_raw_path[260] = "example.raw"; // ´æ´¢Ñ¡ÖĞµÄÂ·¾¶
-// ĞŞ¸Äº¯ÊıÇ©Ãû£¬Ôö¼Ó path ²ÎÊı
+ char current_raw_path[260] = "example.raw"; // å­˜å‚¨é€‰ä¸­çš„è·¯å¾„
+// ä¿®æ”¹å‡½æ•°ç­¾åï¼Œå¢åŠ  path å‚æ•°
 int Readraw(u16* rawdata, stRawInfo* rawinfo, const char* path) {
 	int H = rawinfo->H;
 	int W = rawinfo->W;
 	FILE* fraw = NULL;
 
-	// Ê¹ÓÃ´«ÈëµÄ path Ìæ»»Ó²±àÂëÂ·¾¶
+	// ä½¿ç”¨ä¼ å…¥çš„ path æ›¿æ¢ç¡¬ç¼–ç è·¯å¾„
 	errno_t ret = fopen_s(&fraw, path, "rb");
 	if (ret != 0) {
 		printf("Read file error: %s\n", path);
@@ -122,10 +122,10 @@ int PipeRun()
 		start = clock();
 		ret = Run_RawNR(gISPparam, Rawdata, Rawdata);
 		errorinfo(ret, "run RawNR!");
-		end = clock();   // ½áÊø¼ÆÊ±
+		end = clock();   // ç»“æŸè®¡æ—¶
 		cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
 
-		printf("ºÄÊ±: %f Ãë\n", cpu_time_used);
+		printf("è€—æ—¶: %f ç§’\n", cpu_time_used);
 	}
 	if (1 == gISPparam->raw_extern.enable)
 	{
@@ -152,6 +152,18 @@ int PipeRun()
 	{
 		ret = Run_contrast(gISPparam, Rgbdata, Rgbdata8bit);
 		errorinfo(ret, "run Run_contrast!");
+	}
+		if (1 == gISPparam->saturation_Param.enable)
+	{
+		clock_t start, end;
+		double cpu_time_used;
+		start = clock();
+		ret = Run_saturation(gISPparam, Rgbdata8bit, Rgbdata8bit);
+		errorinfo(ret, "run Run_saturation!");
+		end = clock();   // ç»“æŸè®¡æ—¶
+		cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+
+		printf("times: %f ç§’\n", cpu_time_used);
 	}
 	if (1 == gISPparam->sharpen_Param.enable)
 	{
