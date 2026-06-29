@@ -363,9 +363,20 @@ void RenderISPParameterWindow() {
             gISPparamHDRcombine.contrast_Param.contrastbit=contrastbit;
 
         }
+        // --- 9. saturation ---
+        if (ImGui::CollapsingHeader("11. saturation")) {
 
+            bool en = (gISPparamHDRcombine.saturation_Param.enable != 0);
+            if (ImGui::Checkbox("Enable saturation", &en)) gISPparamHDRcombine.saturation_Param.enable = en;
+           
+            int saturationstrength = gISPparamHDRcombine.saturation_Param.strength;
+      
+            ImGui::InputInt("saturationstrength", &saturationstrength);
+            gISPparamHDRcombine.saturation_Param.strength = saturationstrength;
+
+        }
         // --- 9. Sharpen ---
-        if (ImGui::CollapsingHeader("11. Sharpening")) {
+        if (ImGui::CollapsingHeader("12. Sharpening")) {
             bool en = (gISPparamHDRcombine.sharpen_Param.enable != 0);
             if (ImGui::Checkbox("Enable Sharpen", &en)) gISPparamHDRcombine.sharpen_Param.enable = en;
             ImGui::InputFloat("Gain Fine", &gISPparamHDRcombine.sharpen_Param.gain_fine);
@@ -522,6 +533,17 @@ void RenderISPParameterWindow() {
             gISPparamLinear.contrast_Param.contrastbit=contrastbit;
             gISPparamLinear.contrast_Param.ContrastStrength=contraststrength;
         }
+        if (ImGui::CollapsingHeader("10. saturation")) {
+
+            bool en = (gISPparamLinear.saturation_Param.enable != 0);
+            if (ImGui::Checkbox("Enable saturation", &en)) gISPparamLinear.saturation_Param.enable = en;
+
+            int saturationstrength = gISPparamLinear.saturation_Param.strength;
+
+            ImGui::InputInt("saturationstrength", &saturationstrength);
+            gISPparamLinear.saturation_Param.strength = saturationstrength;
+
+        }
         // --- 8. Sharpen ---
         if (ImGui::CollapsingHeader("10. Sharpening")) {
             bool en = (gISPparamLinear.sharpen_Param.enable != 0);
@@ -629,8 +651,7 @@ int main(int, char**)
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
 
-    LoadParam("hdr.bin", gISPparamHDRcombine);
-    LoadParam("linear.bin", gISPparamLinear);
+    printf("init!\n");
 
     bool done = false;
     while (!done) {
