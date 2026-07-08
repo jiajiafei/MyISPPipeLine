@@ -451,6 +451,20 @@ inline float apply_smooth_coring(float hf_val, float threshold) {
     // f(x) = x^3 / (x^2 + T^2)
     return (hf_val * x2) / (x2 + t2 + 1e-6f);
 }
+inline float compute_local_variance(const float* img, int x, int y, int w, int h) {
+    float sum = 0.0f, sum_sq = 0.0f;
+    for (int dy = -1; dy <= 1; ++dy) {
+        int py = CLIP(y + dy, 0, h - 1);
+        for (int dx = -1; dx <= 1; ++dx) {
+            int px = CLIP(x + dx, 0, w - 1);
+            float v = img[py * w + px];
+            sum += v;
+            sum_sq += v * v;
+        }
+    }
+    float mean = sum / 9.0f;
+    return max(0.0f, (sum_sq / 9.0f) - mean * mean);
+}
 // 旋转对称的 3x3 Sobel 各向同性梯度 (消除了正交轴向偏向)
 inline float compute_local_gradient_sobel(const float* img, int x, int y, int w, int h) {
     int x0 = max(0, x - 1), x1 = x, x2 = min(w - 1, x + 1);
@@ -467,50 +481,95 @@ inline float compute_local_gradient_sobel(const float* img, int x, int y, int w,
     // 欧氏距离 (旋转不变性)，* 0.125f 进行幅值归一化
     return std::sqrt(gx * gx + gy * gy) * 0.125f;
 }
+// 1D 可分离 5x5 高斯低通 (完全替代 [下采样+上采样]，零混叠、零摩尔纹、零波浪涟漪)
+inline void fast_lowpass_5x5(const float* src, float* dst, int w, int h) {
+    std::vector<float> tmp(w * h);
+    // 1D 水平高斯 [1, 4, 6, 4, 1] / 16
+#pragma omp parallel for
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            int x_m2 = max(0, x - 2), x_m1 = max(0, x - 1);
+            int x_p1 = min(w - 1, x + 1), x_p2 = min(w - 1, x + 2);
+            tmp[y * w + x] = (src[y * w + x_m2] + 4.0f * src[y * w + x_m1]
+                + 6.0f * src[y * w + x]
+                + 4.0f * src[y * w + x_p1] + src[y * w + x_p2]) * 0.0625f;
+        }
+    }
+    // 1D 垂直高斯 [1, 4, 6, 4, 1] / 16
+#pragma omp parallel for
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            int y_m2 = max(0, y - 2), y_m1 = max(0, y - 1);
+            int y_p1 = min(h - 1, y + 1), y_p2 = min(h - 1, y + 2);
+            dst[y * w + x] = (tmp[y_m2 * w + x] + 4.0f * tmp[y_m1 * w + x]
+                + 6.0f * tmp[y * w + x]
+                + 4.0f * tmp[y_p1 * w + x] + tmp[y_p2 * w + x]) * 0.0625f;
+        }
+    }
+}
 void process_channel_vst_twoband_edge(const float* src_vst, const float* guide_vst, float* dst_vst,
     int w, int h, float h_vst, float coring_thresh_vst,float edge_thresh_vst, int numThreads) {
     int N_full = w * h;
     int w2 = w / 2, h2 = h / 2;
     int N_low = w2 * h2;
 
-    // 1. 低频 2x 下采样
+    // -------------------------------------------------------------
+    // Step 1: 【方案一】直接低通提取原图高品质低频，彻底切断下采样混叠
+    // -------------------------------------------------------------
+    std::vector<float> full_low_I(N_full);
+    fast_lowpass_5x5(src_vst, full_low_I.data(), w, h);
+
+    // -------------------------------------------------------------
+    // Step 2: 仅为了缩减 NLM 计算量，对图像进行 2x 抗混叠下采样
+    // -------------------------------------------------------------
     std::vector<float> low_I(N_low), low_G(N_low);
     downsample2x(src_vst, low_I.data(), w, h);
     downsample2x(guide_vst, low_G.data(), w, h);
 
-    // 2. 低分 Joint-NLM 滤波 (在 VST 空间计算，注意 h_vst 已被归一化)
+    // -------------------------------------------------------------
+    // Step 3: 低分辨率 Joint-NLM 降噪
+    // -------------------------------------------------------------
     std::vector<float> low_p(N_low);
     nlm_channel_fast_lowres_joint(low_I.data(), low_G.data(), low_p.data(),
         w2, h2, 2, 2, h_vst, numThreads);
 
-    // 3. 双线性上采样还原低频基底
-    std::vector<float> full_low_I(N_full);
+    // -------------------------------------------------------------
+    // Step 4: 将低分降噪结果 low_p 上采样还原回原图分辨率
+    // -------------------------------------------------------------
     std::vector<float> full_low_clean(N_full);
-    fastBicubicUpsample2x(low_I.data(), full_low_I.data(), w2, h2, w, h);
     fastBicubicUpsample2x(low_p.data(), full_low_clean.data(), w2, h2, w, h);
-
     // 4. 重建与强边缘防扩散透传
 #pragma omp parallel for num_threads(numThreads)
-    for (int y = 0; y < h; ++y) {
-        for (int x = 0; x < w; ++x) {
-            int idx = y * w + x;
+for (int y = 0; y < h; ++y) {
+    for (int x = 0; x < w; ++x) {
+        int idx = y * w + x;
 
-            // A. 计算引导通道在 VST 域的局部边缘强度
-            float grad = compute_local_gradient_sobel(guide_vst, x, y, w, h);
+        // 1. 计算低频修正量 Delta
+        float delta = full_low_clean[idx] - full_low_I[idx];
 
-            // B. 计算边缘自适应权重 alpha (强边缘区 alpha 趋近 0，切回原始 VST 信号)
-            float alpha = 1.0f - min(1.0f, grad / (edge_thresh_vst + 1e-5f));
-            alpha = alpha * alpha;
+        // 2. 核心抑制：在 VST 域，噪声标准差 sigma ≈ 1.0
+        // 如果 delta 远大于 1.5 * sigma，说明是下采样产生的波浪伪影/摩尔纹，强制做软限幅 (Soft Clamp)
+        float max_delta = 1.5f; // VST 域下允许的最大修正幅度
+        delta = max(-max_delta, min(max_delta, delta));
 
-            // C. 高频提取与死区滤波
-            float high_freq = src_vst[idx] - full_low_I[idx];
-            float high_freq_clean = apply_smooth_coring(high_freq, coring_thresh_vst);
-            float denoise_vst = full_low_clean[idx] + high_freq_clean;
+        // 3. 边缘与纹理自适应
+        float grad = compute_local_gradient_sobel(guide_vst, x, y, w, h);
+        float var = compute_local_variance(guide_vst, x, y, w, h);
 
-            // D. 融合输出
-            dst_vst[idx] = alpha * denoise_vst + (1.0f - alpha) * src_vst[idx];
-        }
+        // 纹理区 (var 大) 衰减 delta，防止波浪纹叠加
+        float texture_suppress = 1.0f / (1.0f + 0.5f * max(0.0f, var - 1.0f));
+
+        float alpha = 1.0f - min(1.0f, grad / (edge_thresh_vst + 1e-5f));
+        alpha = alpha * alpha * texture_suppress;
+
+        // 4. 高频 Coring 提取
+        float high_freq = src_vst[idx] - full_low_I[idx];
+        float high_freq_clean = apply_smooth_coring(high_freq, coring_thresh_vst);
+
+        // 5. 最终输出：原图 + 被严格限制幅度的 (delta + 高频)
+        dst_vst[idx] = src_vst[idx] + alpha * (delta + high_freq_clean - high_freq);
     }
+}
 }
 
 // ==================== 5. 总流水线框架对接与入口函数 ====================
