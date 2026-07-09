@@ -320,6 +320,7 @@ void RenderISPParameterWindow() {
             ImGui::InputFloat("H_R (Red)", &gISPparamHDRcombine.rnr_Param.h_r, 0.1f, 1.0f, "%.2f");
             ImGui::InputFloat("H_G (Green)", &gISPparamHDRcombine.rnr_Param.h_g, 0.1f, 1.0f, "%.2f");
             ImGui::InputFloat("H_B (Blue)", &gISPparamHDRcombine.rnr_Param.h_b, 0.1f, 1.0f, "%.2f");
+            ImGui::InputFloat("Nr_alpha ", &gISPparamLinear.rnr_Param.Nr_alpha, 0.1f, 1.0f, "%.2f");
         }
         //--demosaic
         if (ImGui::CollapsingHeader("7. Demosaic")) {
@@ -490,6 +491,7 @@ void RenderISPParameterWindow() {
             ImGui::InputFloat("H_R (Red)", &gISPparamLinear.rnr_Param.h_r, 0.1f, 1.0f, "%.2f");
             ImGui::InputFloat("H_G (Green)", &gISPparamLinear.rnr_Param.h_g, 0.1f, 1.0f, "%.2f");
             ImGui::InputFloat("H_B (Blue)", &gISPparamLinear.rnr_Param.h_b, 0.1f, 1.0f, "%.2f");
+            ImGui::InputFloat("Nr_alpha ", &gISPparamLinear.rnr_Param.Nr_alpha, 0.1f, 1.0f, "%.2f");
         }
         //--demosaic
         if (ImGui::CollapsingHeader("6. Demosaic")) {
