@@ -108,7 +108,28 @@ static inline void makeRectOffsets(int rx, int ry, std::vector<std::pair<int, in
         for (int dx = -rx; dx <= rx; ++dx)
             offs.emplace_back(dx, dy);
 }
+// 1. 边界镜像映射：替换原来的 std::max(0, std::min(w-1, x)) 或 CLIP
+inline int reflect_border(int p, int len) {
+    if (len <= 1) return 0;
+    while (p < 0 || p >= len) {
+        if (p < 0) p = -p;
+        if (p >= len) p = 2 * len - 2 - p;
+    }
+    return p;
+}
 
+// 2. 边界 Fade-Out 衰减 Mask：防止边界低通滤波带来的外扩条纹
+inline float compute_border_weight(int x, int y, int w, int h, int border_margin = 8) {
+    int dist_x = min(x, w - 1 - x);
+    int dist_y = min(y, h - 1 - y);
+    int min_dist = min(dist_x, dist_y);
+
+    if (min_dist >= border_margin) return 1.0f;
+
+    // Smoothstep 平滑渐变 (0.0 ~ 1.0)
+    float t = static_cast<float>(min_dist) / static_cast<float>(border_margin);
+    return t * t * (3.0f - 2.0f * t);
+}
 
 
 // ---------------- Bayer split/merge (R Gr Gb B) ----------------
@@ -174,18 +195,38 @@ inline void mergeBayerFloat(float* dst, int rows, int cols, const float* R, cons
 
 
 // 2x2 均值下采样（硬件上对应平铺累加，极其轻量）
+// 带有 3x3 高斯抗混叠 (Binomial [1,2,1]) + 镜像边界处理的 2x 下采样
 void downsample2x(const float* src, float* dst, int w, int h) {
     int w2 = w / 2;
     int h2 = h / 2;
-    for (int y = 0; y < h2; ++y) {
-        for (int x = 0; x < w2; ++x) {
-            int sx = x * 2;
-            int sy = y * 2;
-            float sum = src[idx(sx, sy, w)] +
-                src[idx(sx + 1, sy, w)] +
-                src[idx(sx, sy + 1, w)] +
-                src[idx(sx + 1, sy + 1, w)];
-            dst[idx(x, y, w2)] = sum * 0.25f;
+
+    // 二项式 [1, 2, 1] 二维核 (加权和为 16)
+    //  1  2  1
+    //  2  4  2
+    //  1  2  1
+#pragma omp parallel for collapse(2)
+    for (int y2 = 0; y2 < h2; ++y2) {
+        for (int x2 = 0; x2 < w2; ++x2) {
+            // 对应原图 2x2 中心
+            int x = x2 * 2;
+            int y = y2 * 2;
+
+            float sum = 0.0f;
+
+            // 3x3 邻域高斯平滑 (使用 reflect_border 防边界扩展)
+            for (int dy = -1; dy <= 1; ++dy) {
+                int py = reflect_border(y + dy, h);
+                float wy = (dy == 0) ? 2.0f : 1.0f;
+
+                for (int dx = -1; dx <= 1; ++dx) {
+                    int px = reflect_border(x + dx, w);
+                    float wx = (dx == 0) ? 2.0f : 1.0f;
+
+                    sum += src[py * w + px] * (wx * wy);
+                }
+            }
+
+            dst[y2 * w2 + x2] = sum * (1.0f / 16.0f); // 归一化
         }
     }
 }
@@ -378,67 +419,95 @@ void nlm_channel_fast_lowres(const float* src, float* dst, int w, int h,
         }
     }
 }
+// =========================================================================
+// 1. 在 NLM 主函数上方定义这个 Helper 函数
+// =========================================================================
+inline float compute_patch_dist_gaussian(const float* guide,
+    int x1, int y1, int x2, int y2,
+    int w, int h) {
+    // 3x3 高斯空间加权核 (旋转对称，消除矩形 Patch 边缘滑动阶跃)
+    static const float kernel[3][3] = {
+        {0.0625f, 0.125f, 0.0625f},
+        {0.125f,  0.250f, 0.125f},
+        {0.0625f, 0.125f, 0.0625f}
+    };
 
+    float dist = 0.0f;
+    for (int dy = -1; dy <= 1; ++dy) {
+        int py1 = CLIP(y1 + dy, 0, h - 1);
+        int py2 = CLIP(y2 + dy, 0, h - 1);
+        for (int dx = -1; dx <= 1; ++dx) {
+            int px1 = CLIP(x1 + dx, 0, w - 1);
+            int px2 = CLIP(x2 + dx, 0, w - 1);
 
+            float diff = guide[py1 * w + px1] - guide[py2 * w + px2];
+            dist += (diff * diff) * kernel[dy + 1][dx + 1]; // 带高斯平滑的 Patch 距离
+        }
+    }
+    return dist;
+}
+
+// =========================================================================
+// 2. NLM 滤波主逻辑
+// =========================================================================
 void nlm_channel_fast_lowres_joint(const float* src, const float* guide, float* dst,
-    int w, int h, int patch_r, int search_r,
+    int w, int h, int patch_radius, int search_radius,
     float h_param, int numThreads) {
-    float h_sq = h_param * h_param;
-    int patch_pixels = (2 * patch_r + 1) * (2 * patch_r + 1);
+    float h2_inv = 1.0f / (h_param * h_param + 1e-6f);
 
-#pragma omp parallel for num_threads(numThreads) schedule(dynamic, 4)
+#pragma omp parallel for num_threads(numThreads) collapse(2)
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
-            int center_idx = y * w + x;
-
-            float sum_w = 0.0f;
+            float sum_weight = 0.0f;
             float sum_val = 0.0f;
 
-            // 搜索窗口边界限制
-            int min_sy = max(0, y - search_r);
-            int max_sy = min(h - 1, y + search_r);
-            int min_sx = max(0, x - search_r);
-            int max_sx = min(w - 1, x + search_r);
+            // 搜索窗口循环 (例如 5x5 搜索区域)
+            for (int sy = -search_radius; sy <= search_radius; ++sy) {
+                int qy = CLIP(y + sy, 0, h - 1);
+                for (int sx = -search_radius; sx <= search_radius; ++sx) {
+                    int qx = CLIP(x + sx, 0, w - 1);
 
-            for (int sy = min_sy; sy <= max_sy; ++sy) {
-                for (int sx = min_sx; sx <= max_sx; ++sx) {
-                    int neighbor_idx = sy * w + sx;
+                    // -------------------------------------------------------------
+                    // 📍【替换点】：调用 compute_patch_dist_gaussian 算两点间的 Patch 距离
+                    // -------------------------------------------------------------
+                    float patch_dist = compute_patch_dist_gaussian(guide, x, y, qx, qy, w, h);
 
-                    // 计算 Patch 之间的相似度距离 —— 💥 强行使用 guide 通道（G通道）
-                    float dist_sq = 0.0f;
-                    for (int dy = -patch_r; dy <= patch_r; ++dy) {
-                        int ly1 = max(0, min(h - 1, y + dy));
-                        int ly2 = max(0, min(h - 1, sy + dy));
+                    // 计算指数权重
+                    float weight = std::exp(-patch_dist * h2_inv);
 
-                        for (int dx = -patch_r; dx <= patch_r; ++dx) {
-                            int lx1 = max(0, min(w - 1, x + dx));
-                            int lx2 = max(0, min(w - 1, sx + dx));
-
-                            // 关键点：用 guide 计算差异
-                            float diff = guide[ly1 * w + lx1] - guide[ly2 * w + lx2];
-                            dist_sq += diff * diff;
-                        }
-                    }
-
-                    // 归一化 Patch 均方差
-                    dist_sq /= patch_pixels;
-
-                    // 计算权重
-                    float weight = std::exp(-dist_sq / h_sq);
-
-                    // 💥 权重累加，但加权使用的是目标通道 src (R/B 通道) 的像素值
-                    sum_w += weight;
-                    sum_val += weight * src[neighbor_idx];
+                    sum_weight += weight;
+                    sum_val += src[qy * w + qx] * weight;
                 }
             }
 
             // 归一化输出
-            if (sum_w > 1e-5f) {
-                dst[center_idx] = sum_val / sum_w;
+            dst[y * w + x] = sum_val / (sum_weight + 1e-6f);
+        }
+    }
+}
+void nlm_lowres_joint_fast(const float* src_low, const float* guide_low, float* dst_low,
+    int w2, int h2, float h_vst, int search_radius, int numThreads) {
+    float h2_inv = 1.0f / (h_vst * h_vst + 1e-6f);
+
+#pragma omp parallel for num_threads(numThreads) collapse(2)
+    for (int y = 0; y < h2; ++y) {
+        for (int x = 0; x < w2; ++x) {
+            float sum_weight = 0.0f;
+            float sum_val = 0.0f;
+
+            for (int sy = -search_radius; sy <= search_radius; ++sy) {
+                int qy = reflect_border(y + sy, h2);
+                for (int sx = -search_radius; sx <= search_radius; ++sx) {
+                    int qx = reflect_border(x + sx, w2);
+
+                    float dist = compute_patch_dist_gaussian(guide_low, x, y, qx, qy, w2, h2);
+                    float weight = std::exp(-dist * h2_inv);
+
+                    sum_weight += weight;
+                    sum_val += src_low[qy * w2 + qx] * weight;
+                }
             }
-            else {
-                dst[center_idx] = src[center_idx];
-            }
+            dst_low[y * w2 + x] = sum_val / (sum_weight + 1e-6f);
         }
     }
 }
@@ -508,69 +577,60 @@ inline void fast_lowpass_5x5(const float* src, float* dst, int w, int h) {
     }
 }
 void process_channel_vst_twoband_edge(const float* src_vst, const float* guide_vst, float* dst_vst,
-    int w, int h, float h_vst, float coring_thresh_vst,float edge_thresh_vst, int numThreads) {
-    int N_full = w * h;
+    int w, int h, float h_vst, float coring_thresh_vst,
+    float edge_thresh_vst, int numThreads, float nr_alpha) {
+    int N = w * h;
     int w2 = w / 2, h2 = h / 2;
-    int N_low = w2 * h2;
+    int N2 = w2 * h2;
+   
+    // Step 1: 高斯抗混叠下采样得到低频基底
+    std::vector<float> src_low(N2), guide_low(N2);
+    downsample2x(src_vst, src_low.data(), w, h);
+    downsample2x(guide_vst, guide_low.data(), w, h);
 
-    // -------------------------------------------------------------
-    // Step 1: 【方案一】直接低通提取原图高品质低频，彻底切断下采样混叠
-    // -------------------------------------------------------------
-    std::vector<float> full_low_I(N_full);
-    fast_lowpass_5x5(src_vst, full_low_I.data(), w, h);
+    // Step 2: 低频域跑 Joint-NLM (带高斯圆角 Patch)
+    std::vector<float> low_clean_sub(N2);
+    nlm_lowres_joint_fast(src_low.data(), guide_low.data(), low_clean_sub.data(), w2, h2, h_vst, 2, numThreads);
 
-    // -------------------------------------------------------------
-    // Step 2: 仅为了缩减 NLM 计算量，对图像进行 2x 抗混叠下采样
-    // -------------------------------------------------------------
-    std::vector<float> low_I(N_low), low_G(N_low);
-    downsample2x(src_vst, low_I.data(), w, h);
-    downsample2x(guide_vst, low_G.data(), w, h);
+    // Step 3: 低频上采样回全分辨率
+    std::vector<float> full_low_I(N), full_low_clean(N);
+    fastBicubicUpsample2x(src_low.data(), full_low_I.data(), w2, h2, w, h);
+    fastBicubicUpsample2x(low_clean_sub.data(), full_low_clean.data(), w2, h2, w, h);
 
-    // -------------------------------------------------------------
-    // Step 3: 低分辨率 Joint-NLM 降噪
-    // -------------------------------------------------------------
-    std::vector<float> low_p(N_low);
-    nlm_channel_fast_lowres_joint(low_I.data(), low_G.data(), low_p.data(),
-        w2, h2, 2, 2, h_vst, numThreads);
-
-    // -------------------------------------------------------------
-    // Step 4: 将低分降噪结果 low_p 上采样还原回原图分辨率
-    // -------------------------------------------------------------
-    std::vector<float> full_low_clean(N_full);
-    fastBicubicUpsample2x(low_p.data(), full_low_clean.data(), w2, h2, w, h);
-    // 4. 重建与强边缘防扩散透传
+    // Step 4: 两频带融合与边缘/纹理保护
 #pragma omp parallel for num_threads(numThreads)
-for (int y = 0; y < h; ++y) {
-    for (int x = 0; x < w; ++x) {
-        int idx = y * w + x;
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            int idx = y * w + x;
 
-        // 1. 计算低频修正量 Delta
-        float delta = full_low_clean[idx] - full_low_I[idx];
+            float grad = compute_local_gradient_sobel(guide_vst, x, y, w, h);
+            float var = compute_local_variance(guide_vst, x, y, w, h);
 
-        // 2. 核心抑制：在 VST 域，噪声标准差 sigma ≈ 1.0
-        // 如果 delta 远大于 1.5 * sigma，说明是下采样产生的波浪伪影/摩尔纹，强制做软限幅 (Soft Clamp)
-        float max_delta = 1.5f; // VST 域下允许的最大修正幅度
-        delta = max(-max_delta, min(max_delta, delta));
+            // 纹理区压制系数
+            float texture_suppress = 1.0f / (1.0f + 2.0f * max(0.0f, var - 1.2f));
 
-        // 3. 边缘与纹理自适应
-        float grad = compute_local_gradient_sobel(guide_vst, x, y, w, h);
-        float var = compute_local_variance(guide_vst, x, y, w, h);
+            // 平滑区混合 alpha
+            float alpha = 1.0f - min(1.0f, grad / (edge_thresh_vst + 1e-5f));
+            alpha = alpha * alpha * texture_suppress;
 
-        // 纹理区 (var 大) 衰减 delta，防止波浪纹叠加
-        float texture_suppress = 1.0f / (1.0f + 0.5f * max(0.0f, var - 1.0f));
+            // 【关键修正 3】：边界 Fade-Out 保护，防止边界外扩条纹
+            float border_w = compute_border_weight(x, y, w, h, 8);
+            alpha *= border_w;
 
-        float alpha = 1.0f - min(1.0f, grad / (edge_thresh_vst + 1e-5f));
-        alpha = alpha * alpha * texture_suppress;
+            // 高频 Coring 提取
+            float high_freq = src_vst[idx] - full_low_I[idx];
+            float high_freq_clean = apply_smooth_coring(high_freq, coring_thresh_vst);
 
-        // 4. 高频 Coring 提取
-        float high_freq = src_vst[idx] - full_low_I[idx];
-        float high_freq_clean = apply_smooth_coring(high_freq, coring_thresh_vst);
+            // 低频修正量 Delta
+            float delta = full_low_clean[idx] - full_low_I[idx];
 
-        // 5. 最终输出：原图 + 被严格限制幅度的 (delta + 高频)
-        dst_vst[idx] = src_vst[idx] + alpha * (delta + high_freq_clean - high_freq);
+            // 最终输出
+            dst_vst[idx] = src_vst[idx] + alpha * (delta + high_freq_clean - high_freq);
+            dst_vst[idx] = dst_vst[idx] * nr_alpha + (1 - nr_alpha) * src_vst[idx];
+        }
     }
 }
-}
+
 
 // ==================== 5. 总流水线框架对接与入口函数 ====================
 // =================================================================
@@ -579,7 +639,7 @@ for (int y = 0; y < h; ++y) {
 void denoise_bayer_vst_twoband_pipeline(const u16* src, u16* dst, int rows, int cols,
     const NoiseModel& nm, int numThreadsAll,
     float h_r_vst, float h_g_vst, float h_b_vst,
-    float coring_thresh_vst, float edge_thresh_vst) {
+    float coring_thresh_vst, float edge_thresh_vst,float nr_alpha) {
     int N_full = rows * cols;
     int h2 = rows / 2, w2 = cols / 2;
     int N_sub = w2 * h2;
@@ -599,7 +659,7 @@ void denoise_bayer_vst_twoband_pipeline(const u16* src, u16* dst, int rows, int 
     splitBayerFloat(vst_full_src.data(), rows, cols, R_src.data(), Gr_src.data(), Gb_src.data(), B_src.data());
 
     // -----------------------------------------------------------------
-    // 【核心改进 1】合成 G_mean 统一引导通道，消除 Gr/Gb 差异产生的纹理
+    // 【关键修正 4】：合成 G_mean 通道，作为全局统一的 Guide
     // -----------------------------------------------------------------
     std::vector<float> G_mean_src(N_sub);
 #pragma omp parallel for
@@ -608,26 +668,25 @@ void denoise_bayer_vst_twoband_pipeline(const u16* src, u16* dst, int rows, int 
     }
 
     // -----------------------------------------------------------------
-    // Step 3: 多线程并行处理 4 通道 (全部使用 G_mean_src 进行交叉引导)
+    // Step 3: 多线程并行处理 4 个通道 (全部以 G_mean_src 作为引导图)
     // -----------------------------------------------------------------
     int perChanThreads = max(1, numThreadsAll / 4);
 
-    // 【核心改进 2】所有通道的 guide_vst 统一传入 G_mean_src.data()
     std::thread tR([&]() {
         process_channel_vst_twoband_edge(R_src.data(), G_mean_src.data(), R_dst.data(),
-            w2, h2, h_r_vst, coring_thresh_vst, edge_thresh_vst, perChanThreads);
+            w2, h2, h_r_vst, coring_thresh_vst, edge_thresh_vst, perChanThreads, nr_alpha);
         });
     std::thread tGr([&]() {
         process_channel_vst_twoband_edge(Gr_src.data(), G_mean_src.data(), Gr_dst.data(),
-            w2, h2, h_g_vst, coring_thresh_vst, edge_thresh_vst, perChanThreads);
+            w2, h2, h_g_vst, coring_thresh_vst, edge_thresh_vst, perChanThreads, nr_alpha);
         });
     std::thread tGb([&]() {
         process_channel_vst_twoband_edge(Gb_src.data(), G_mean_src.data(), Gb_dst.data(),
-            w2, h2, h_g_vst, coring_thresh_vst, edge_thresh_vst, perChanThreads);
+            w2, h2, h_g_vst, coring_thresh_vst, edge_thresh_vst, perChanThreads, nr_alpha);
         });
     std::thread tB([&]() {
         process_channel_vst_twoband_edge(B_src.data(), G_mean_src.data(), B_dst.data(),
-            w2, h2, h_b_vst, coring_thresh_vst, edge_thresh_vst, perChanThreads);
+            w2, h2, h_b_vst, coring_thresh_vst, edge_thresh_vst, perChanThreads, nr_alpha);
         });
 
     tR.join(); tGr.join(); tGb.join(); tB.join();
@@ -662,7 +721,7 @@ int Run_RawNR(stISPParams* gISPparam, u16* src, u16* dst)
     float h_r_vst = static_cast<float>(gISPparam->rnr_Param.h_r);
     float h_g_vst = static_cast<float>(gISPparam->rnr_Param.h_g);
     float h_b_vst = static_cast<float>(gISPparam->rnr_Param.h_b);
-
+    float nr_alpha = static_cast<float>(gISPparam->rnr_Param.Nr_alpha);
     // 4. 设置新增的高频死区 (Coring) 与 强边缘透传门限 (Edge Threshold)
     // 💡 如果 gISPparam 中已有对应字段可直接读取，否则填入 VST 域的经典推荐初值：
     float coring_thresh_vst = 1.0f; // 高频死区阈值 (建议 0.5 ~ 1.5)
@@ -673,7 +732,7 @@ int Run_RawNR(stISPParams* gISPparam, u16* src, u16* dst)
         src, dst, rows, cols,
         nm, static_cast<int>(hw),
         h_r_vst, h_g_vst, h_b_vst,
-        coring_thresh_vst, edge_thresh_vst
+        coring_thresh_vst, edge_thresh_vst, nr_alpha
     );
 
     return 0;
