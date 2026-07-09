@@ -83,12 +83,13 @@ typedef struct ISPParam_rnr
 	float h_r;
 	float h_g;
 	float h_b;
+	float Nr_alpha;
 
 }ISPParam_rnr;
 typedef struct ISPParam_tonemap
 {
 	u8 enable ;
-	double lamda ;//É«²Ê»Ö¸´
+	double lamda ;//色彩恢复
 	int PWLsize ;
 	double tauR ;
 	double P ;
