@@ -74,7 +74,8 @@ static u32 y_coor[34] = {
 		.enable = 1,
 		.h_r=25,
 		.h_g=25,
-		.h_b=25
+		.h_b=25,
+		.Nr_alpha=0.7
 		},
 	.tonemap_Param = {
 		.enable = 1,
@@ -122,11 +123,11 @@ static u32 y_coor[34] = {
 	.contrast_Param = {
 		.enable=1,
 		.contrastbit=8,
-		.ContrastStrength=128
+		.ContrastStrength=255
 	},
-	.saturation_Param = {
+		.saturation_Param = {
 		.enable = 1,
-		.strength=256
+		.strength = 256
 	},
 	.ldciParam={.enable = 1},
 	.sharpen_Param={
@@ -178,7 +179,8 @@ stISPParams gISPparamLinear = {
 		.enable = 0,
 		.h_r = 25,
 		.h_g = 25,
-		.h_b = 25
+		.h_b = 25,
+		.Nr_alpha = 0.7
 		},
 
 	.tonemap_Param = {
@@ -227,13 +229,14 @@ stISPParams gISPparamLinear = {
 	.contrast_Param = {
 		.enable = 1,
 		.contrastbit = 8,
-		.ContrastStrength = 128
+		.ContrastStrength = 255
 	},
 	.saturation_Param = {
 		.enable = 1,
 		.strength=256
 	},
 	.ldciParam = {.enable = 1},
+
 	.sharpen_Param = {
 		.enable = 1,
 		.sharpenbit = 8,
