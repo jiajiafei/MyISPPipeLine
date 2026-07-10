@@ -481,6 +481,7 @@ unsigned short* ELTM(int* rawdata_y, stISPParams* gISPparam)
 }
 
 // ---------- 1. 工业级纯低分辨率空间无缝算子 ----------
+#if 0
 static void FG_Downsample2x_Generic(const double* src, double* dst, int W, int H) {
     int dstW = (W + 1) / 2;
     int dstH = (H + 1) / 2;
@@ -501,29 +502,110 @@ static void FG_Downsample2x_Generic(const double* src, double* dst, int W, int H
         }
     }
 }
+#endif
+static inline double Median4(double a, double b, double c, double d)
+{
+    double arr[4] = { a,b,c,d };
 
-// 【绝对几何中心对齐】双线性上采样 (不再受制于 canvas 比例，无相位漂移)
-// 【通用中心对齐版】双线性上采样 —— 动态自动计算任意缩放比
+    for (int i = 0; i < 3; i++) {
+        for (int j = i + 1; j < 4; j++) {
+            if (arr[j] < arr[i]) {
+                double tmp = arr[i];
+                arr[i] = arr[j];
+                arr[j] = tmp;
+            }
+        }
+    }
+
+    return 0.5 * (arr[1] + arr[2]);
+}
+
+static void FG_Downsample2x_EdgeAware(const double* src, double* dst, int W, int H)
+{
+    int dstW = (W + 1) / 2;
+    int dstH = (H + 1) / 2;
+
+    const double edge_th = 0.02;
+    // log domain threshold
+    // 可调范围：0.01 ~ 0.08
+
+#pragma omp parallel for
+    for (int y = 0; y < dstH; ++y) {
+        int srcY0 = y * 2;
+        int srcY1 = min(srcY0 + 1, H - 1);
+
+        for (int x = 0; x < dstW; ++x) {
+            int srcX0 = x * 2;
+            int srcX1 = min(srcX0 + 1, W - 1);
+
+            double p00 = src[srcY0 * W + srcX0];
+            double p01 = src[srcY0 * W + srcX1];
+            double p10 = src[srcY1 * W + srcX0];
+            double p11 = src[srcY1 * W + srcX1];
+
+            double mean = (p00 + p01 + p10 + p11) * 0.25;
+
+            double var =
+                ((p00 - mean) * (p00 - mean) +
+                    (p01 - mean) * (p01 - mean) +
+                    (p10 - mean) * (p10 - mean) +
+                    (p11 - mean) * (p11 - mean)) * 0.25;
+
+            if (var < edge_th) {
+                dst[y * dstW + x] = mean;
+            }
+            else {
+                dst[y * dstW + x] = Median4(p00, p01, p10, p11);
+            }
+        }
+    }
+}
+
+static void FG_Downsample2x_Generic(const double* src, double* dst, int W, int H) {
+    int dstW = (W + 1) / 2;
+    int dstH = (H + 1) / 2;
+
+#pragma omp parallel for
+    for (int y = 0; y < dstH; ++y) {
+        int srcY0 = y * 2;
+        int srcY1 = min(srcY0 + 1, H - 1);
+        for (int x = 0; x < dstW; ++x) {
+            int srcX0 = x * 2;
+            int srcX1 = min(srcX0 + 1, W - 1);
+
+            dst[y * dstW + x] = (src[srcY0 * W + srcX0] +
+                src[srcY0 * W + srcX1] +
+                src[srcY1 * W + srcX0] +
+                src[srcY1 * W + srcX1]) * 0.25;
+        }
+    }
+}
+
+// 绝对几何中心对齐的双线性上采样（带边界外推守护）
 static void FG_UpsampleBilinear_Generic(const double* src, double* dst, int srcW, int srcH, int dstW, int dstH) {
-    // 动态计算水平和垂直方向的真实缩放步长
     double scaleX = (double)srcW / dstW;
     double scaleY = (double)srcH / dstH;
 
 #pragma omp parallel for
     for (int y = 0; y < dstH; ++y) {
-        // 标准中心对齐映射：将大图的像素中心 (y + 0.5) 反映射回小图空间，再减去 0.5 得到左上角索引
         double srcY = (y + 0.5) * scaleY - 0.5;
-        int y0 = max(0, min((int)floor(srcY), srcH - 1));
-        int y1 = min(y0 + 1, srcH - 1);
-        double v = max(0.0, min(1.0, srcY - y0)); // 保证权重在 [0, 1]
+        int y0 = (int)std::floor(srcY);
+        int y1 = y0 + 1;
+        double v = srcY - y0;
+
+        // 边界镜像外推守护
+        if (y0 < 0) { y0 = 0; y1 = 0; v = 0.0; }
+        if (y1 >= srcH) { y0 = srcH - 1; y1 = srcH - 1; v = 0.0; }
 
         for (int x = 0; x < dstW; ++x) {
             double srcX = (x + 0.5) * scaleX - 0.5;
-            int x0 = max(0, min((int)floor(srcX), srcW - 1));
-            int x1 = min(x0 + 1, srcW - 1);
-            double u = max(0.0, min(1.0, srcX - x0));
+            int x0 = (int)std::floor(srcX);
+            int x1 = x0 + 1;
+            double u = srcX - x0;
 
-            // 四点插值
+            if (x0 < 0) { x0 = 0; x1 = 0; u = 0.0; }
+            if (x1 >= srcW) { x0 = srcW - 1; x1 = srcW - 1; u = 0.0; }
+
             dst[y * dstW + x] = (1.0 - u) * (1.0 - v) * src[y0 * srcW + x0] +
                 u * (1.0 - v) * src[y0 * srcW + x1] +
                 (1.0 - u) * v * src[y1 * srcW + x0] +
@@ -532,25 +614,36 @@ static void FG_UpsampleBilinear_Generic(const double* src, double* dst, int srcW
     }
 }
 
-// 空间解耦的一维分离式 BoxBlur (同样做边界守护)
+// 引入对称镜像反射（Reflect）的一维分离式 BoxBlur，防止边界能量向内收缩
 static void FG_BoxBlur_Space(const double* src, double* dst, int W, int H, int r) {
     std::vector<double> tmp(W * H);
+
 #pragma omp parallel for
     for (int y = 0; y < H; ++y) {
         for (int x = 0; x < W; ++x) {
             double sum = 0.0;
             for (int k = -r; k <= r; ++k) {
-                sum += src[y * W + max(0, min(W - 1, x + k))];
+                int px = x + k;
+                // 镜像反射边界处理
+                if (px < 0) px = -px;
+                if (px >= W) px = 2 * W - 2 - px;
+                px = CLIP(px, 0, W - 1); // 二次兜底
+                sum += src[y * W + px];
             }
             tmp[y * W + x] = sum / (2 * r + 1);
         }
     }
+
 #pragma omp parallel for
     for (int y = 0; y < H; ++y) {
         for (int x = 0; x < W; ++x) {
             double sum = 0.0;
             for (int k = -r; k <= r; ++k) {
-                sum += tmp[max(0, min(H - 1, y + k)) * W + x];
+                int py = y + k;
+                if (py < 0) py = -py;
+                if (py >= H) py = 2 * H - 2 - py;
+                py = CLIP(py, 0, H - 1);
+                sum += tmp[py * W + x];
             }
             dst[y * W + x] = sum / (2 * r + 1);
         }
@@ -568,29 +661,38 @@ static void FG_ComputeCoeffs_Space(const double* I, double* out_a, double* out_b
     FG_BoxBlur_Space(I, mean_I.data(), W, H, r);
     FG_BoxBlur_Space(II.data(), mean_II.data(), W, H, r);
 
+    // 申请临时空间存储未平滑的 a 和 b
+    std::vector<double> a_tmp(N);
+    std::vector<double> b_tmp(N);
+
 #pragma omp parallel for
     for (int i = 0; i < N; ++i) {
         double var_I = mean_II[i] - mean_I[i] * mean_I[i];
         if (var_I < 0.0) var_I = 0.0;
-        out_a[i] = var_I / (var_I + eps);
-        out_b[i] = mean_I[i] - out_a[i] * mean_I[i];
+        a_tmp[i] = var_I / (var_I + eps);
+        b_tmp[i] = mean_I[i] - a_tmp[i] * mean_I[i];
     }
+
+    // 【核心修复】：必须对系数 a 和 b 再次进行空间平滑，这是消除宽重影的关键数学步骤
+    FG_BoxBlur_Space(a_tmp.data(), out_a, W, H, r);
+    FG_BoxBlur_Space(b_tmp.data(), out_b, W, H, r);
 }
 
+// 修正后的金字塔系数边界平滑函数（采用归一化反射映射）
 static void FG_PostSmoothCoeffs(double* arr, int W, int H) {
     std::vector<double> tmp(W * H);
 #pragma omp parallel for
     for (int y = 0; y < H; ++y) {
         for (int x = 0; x < W; ++x) {
-            int xl = max(0, x - 1);
-            int xr = min(W - 1, x + 1);
+            int xl = (x - 1 < 0) ? 1 : x - 1;
+            int xr = (x + 1 >= W) ? W - 2 : x + 1;
             tmp[y * W + x] = (arr[y * W + xl] + arr[y * W + x] + arr[y * W + xr]) / 3.0;
         }
     }
 #pragma omp parallel for
     for (int y = 0; y < H; ++y) {
-        int yt = max(0, y - 1);
-        int yb = min(H - 1, y + 1);
+        int yt = (y - 1 < 0) ? 1 : y - 1;
+        int yb = (y + 1 >= H) ? H - 2 : y + 1;
         for (int x = 0; x < W; ++x) {
             arr[y * W + x] = (tmp[yt * W + x] + tmp[y * W + x] + tmp[yb * W + x]) / 3.0;
         }
@@ -611,7 +713,6 @@ unsigned short* ELTM_pyr(int* rawdata_y, stISPParams* gISPparam)
     double edge_sigma_r[2] = { 0.04, 0.18 };
     double eps[2] = { edge_sigma_r[0] * edge_sigma_r[0], edge_sigma_r[1] * edge_sigma_r[1] };
 
-    // 原始输入的真实满分辨率宽高
     int W = gISPparam->rawinfo.W / 2;
     int H = gISPparam->rawinfo.H / 2;
     int N = H * W;
@@ -635,52 +736,45 @@ unsigned short* ELTM_pyr(int* rawdata_y, stISPParams* gISPparam)
         if (logimage[i] < minBPlog) minBPlog = logimage[i];
     }
 
-    // ---------- Step 2: 金字塔动态分配（全面引入 Ceil 机制） ----------
-
-    // 【1/2 空间分配】
+    // ---------- Step 2: 金字塔动态分配与线性下采样 ----------
     int W_sub1 = (W + 1) / 2;
     int H_sub1 = (H + 1) / 2;
     std::vector<double> img_sub1(W_sub1 * H_sub1);
     std::vector<double> a_sub1(W_sub1 * H_sub1), b_sub1(W_sub1 * H_sub1);
     std::vector<double> base_sub1(W_sub1 * H_sub1);
 
+    // 核心切换：改用 Generic 线性算子，避免非线性相位偏离
     FG_Downsample2x_Generic(logimage, img_sub1.data(), W, H);
-    FG_ComputeCoeffs_Space(img_sub1.data(), a_sub1.data(), b_sub1.data(), W_sub1, H_sub1, 2, eps[0]);
-#pragma omp parallel for
-    for (int i = 0; i < W_sub1 * H_sub1; ++i) {
-        base_sub1[i] = a_sub1[i] * img_sub1[i] + b_sub1[i];
-    }
+    FG_ComputeCoeffs_Space(img_sub1.data(), a_sub1.data(), b_sub1.data(), W_sub1, H_sub1, 1, eps[0]);
 
-    // 【1/4 空间分配】
     int W_sub2 = (W_sub1 + 1) / 2;
     int H_sub2 = (H_sub1 + 1) / 2;
     std::vector<double> img_sub2(W_sub2 * H_sub2);
     std::vector<double> a_sub2(W_sub2 * H_sub2), b_sub2(W_sub2 * H_sub2);
 
-    FG_Downsample2x_Generic(base_sub1.data(), img_sub2.data(), W_sub1, H_sub1);
-    FG_ComputeCoeffs_Space(img_sub2.data(), a_sub2.data(), b_sub2.data(), W_sub2, H_sub2, 3, eps[1]);
+    FG_Downsample2x_Generic(img_sub1.data(), img_sub2.data(), W_sub1, H_sub1);
+    FG_ComputeCoeffs_Space(img_sub2.data(), a_sub2.data(), b_sub2.data(), W_sub2, H_sub2, 1, eps[1]);
 
-    // 【满分辨率重建流】
+    // 满分辨率重建流
     std::vector<double> full_a0(N), full_b0(N);
     std::vector<double> full_a1(N), full_b1(N);
-
-    // 调用通用对齐重构算子
     FG_UpsampleBilinear_Generic(a_sub1.data(), full_a0.data(), W_sub1, H_sub1, W, H);
     FG_UpsampleBilinear_Generic(b_sub1.data(), full_b0.data(), W_sub1, H_sub1, W, H);
     FG_UpsampleBilinear_Generic(a_sub2.data(), full_a1.data(), W_sub2, H_sub2, W, H);
     FG_UpsampleBilinear_Generic(b_sub2.data(), full_b1.data(), W_sub2, H_sub2, W, H);
 
-    FG_PostSmoothCoeffs(full_a1.data(), W, H);
-    FG_PostSmoothCoeffs(full_b1.data(), W, H);
+    // 【修改】：删除 FG_PostSmoothCoeffs，因为真正的平滑已经在低分辨率的计算中完成了。
+    // 在高分辨率强制平滑系数会导致能量跨越边界，产生伪影。
 
 #pragma omp parallel for
     for (int i = 0; i < N; i++) {
         pyr_Base0[i] = full_a0[i] * logimage[i] + full_b0[i];
-        pyr_Base1[i] = full_a1[i] * pyr_Base0[i] + full_b1[i];
+        pyr_Base1[i] = full_a1[i] * logimage[i] + full_b1[i];
 
         pyr_Detail0[i] = logimage[i] - pyr_Base0[i];
         pyr_Detail1[i] = pyr_Base0[i] - pyr_Base1[i];
     }
+
     // ---------- Step 3: Normalize & Base Mapping Statistics ----------
     double log_range = maxBPlog - minBPlog;
     if (log_range < 1e-6) log_range = 1e-6;
@@ -692,7 +786,7 @@ unsigned short* ELTM_pyr(int* rawdata_y, stISPParams* gISPparam)
     double logP = fast_log10(P);
     double log1pP = fast_log10(1.0 + P);
     double denom = log1pP - logP;
-    if (fabs(denom) < 1e-8) denom = 1e-8;
+    if (std::fabs(denom) < 1e-8) denom = 1e-8;
 
 #pragma omp parallel for
     for (int i = 0; i < N; i++) {
@@ -707,7 +801,7 @@ unsigned short* ELTM_pyr(int* rawdata_y, stISPParams* gISPparam)
         BPC_temp[i] = max(0.0, min(1.0, BPC_temp[i]));
     }
 
-    // ---------- Step 4: 自适应埃尔米特曲线生成（还原第一版纯净逻辑） ----------
+    // ---------- Step 4: 自适应埃尔米特曲线生成 ----------
     int hist[256] = { 0 };
     for (int i = 0; i < N; i++) {
         int idx = (int)(BPC_temp[i] * 255);
@@ -748,49 +842,39 @@ unsigned short* ELTM_pyr(int* rawdata_y, stISPParams* gISPparam)
         splineLUT[i] = max(0.0, min(1.0, splineLUT[i]));
     }
 
-    // ---------- Step 5: Final 深度重构（还原第一版逻辑） ----------
+    // ---------- Step 5: Final 深度重构与边缘守护 ----------
+// ---------- Step 5: Final 深度重构（恢复原始版本） ----------
 #pragma omp parallel for
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < N; i++)
+    {
+        // Base映射后的亮度
         double cur_BPlog = (pyr_Base1[i] + beta) * alpha;
-        double SG = (-0.4 * cur_BPlog > 1.0) ? (-0.4 * cur_BPlog) : 1.0;
-        if (SG > 4.0) SG = 4.0;
 
-        double detail_log = eta[0] * SG * pyr_Detail0[i] +
+        // Shadow Gain
+        double SG = (-0.4 * cur_BPlog > 1.0) ? (-0.4 * cur_BPlog) : 1.0;
+        if (SG > 4.0)
+            SG = 4.0;
+
+        // 原始Detail增强（保持eta的物理意义）
+        double detail_log =
+            eta[0] * SG * pyr_Detail0[i] +
             eta[1] * SG * pyr_Detail1[i];
 
-        // 抗锯齿边缘硬门限软化
-        double raw_base_diff = logimage[i] - pyr_Base1[i];
-        if (std::fabs(raw_base_diff) > 0.15) {
-            double aa_weight = std::exp(-(std::fabs(raw_base_diff) - 0.15) * 2.0);
-            detail_log *= (0.3 + 0.7 * aa_weight);
-        }
-
+        // Tone Curve
         double BPC_finetuned = splineLUT[(int)(BPC_temp[i] * 1023.0)];
 
-        if (detail_log < 0) {
-            if (raw_base_diff > 0.1) {
-                double halo_suppress_factor = std::exp(-raw_base_diff * 5.0);
-                detail_log *= halo_suppress_factor;
-            }
-            double dark_th = 0.35;
-            if (BPC_finetuned < dark_th) {
-                double weight = (dark_th - BPC_finetuned) / dark_th;
-                detail_log = detail_log * (1.0 - weight * 0.92);
-            }
-        }
-
-        if (BPC_finetuned > 0.9) {
-            detail_log *= 0.05;
-        }
-
+        // Detail重建
         double DP = fast_pow10(detail_log);
         double YC = BPC_finetuned * DP;
 
+        // Safety Floor
         double safety_floor = BPC_finetuned * 0.25;
-        if (YC < safety_floor) YC = safety_floor;
+        if (YC < safety_floor)
+            YC = safety_floor;
 
         double val = YC * maxsize;
         result[i] = (unsigned short)max(0.0, min((double)maxsize, val));
+    
     }
 
     free(logimage);
