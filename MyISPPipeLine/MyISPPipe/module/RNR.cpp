@@ -281,19 +281,21 @@ void bilinearUpsample(const float* src, float* dst, int src_w, int src_h, int ds
     float scale_x = (float)src_w / dst_w;
     float scale_y = (float)src_h / dst_h;
     for (int y = 0; y < dst_h; ++y) {
-        float fy = (y + 0.5f) * scale_y - 0.5f;
-        int sy = max(0, min((int)std::floor(fy), src_h - 2));
+        float fy = max(0.0f, min((y + 0.5f) * scale_y - 0.5f, (float)(src_h - 1)));
+        int sy = (int)std::floor(fy);
+        int sy1 = min(sy + 1, src_h - 1);
         float ty = fy - sy;
 
         for (int x = 0; x < dst_w; ++x) {
-            float fx = (x + 0.5f) * scale_x - 0.5f;
-            int sx = max(0, min((int)std::floor(fx), src_w - 2));
+            float fx = max(0.0f, min((x + 0.5f) * scale_x - 0.5f, (float)(src_w - 1)));
+            int sx = (int)std::floor(fx);
+            int sx1 = min(sx + 1, src_w - 1);
             float tx = fx - sx;
 
             float c00 = src[idx(sx, sy, src_w)];
-            float c10 = src[idx(sx + 1, sy, src_w)];
-            float c01 = src[idx(sx, sy + 1, src_w)];
-            float c11 = src[idx(sx + 1, sy + 1, src_w)];
+            float c10 = src[idx(sx1, sy, src_w)];
+            float c01 = src[idx(sx, sy1, src_w)];
+            float c11 = src[idx(sx1, sy1, src_w)];
 
             dst[idx(x, y, dst_w)] = (1.0f - tx) * (1.0f - ty) * c00 +
                 tx * (1.0f - ty) * c10 +
@@ -592,10 +594,14 @@ void process_channel_vst_twoband_edge(const float* src_vst, const float* guide_v
     std::vector<float> low_clean_sub(N2);
     nlm_lowres_joint_fast(src_low.data(), guide_low.data(), low_clean_sub.data(), w2, h2, h_vst, 2, numThreads);
 
-    // Step 3: 低频上采样回全分辨率
-    std::vector<float> full_low_I(N), full_low_clean(N);
-    fastBicubicUpsample2x(src_low.data(), full_low_I.data(), w2, h2, w, h);
-    fastBicubicUpsample2x(low_clean_sub.data(), full_low_clean.data(), w2, h2, w, h);
+    // Step 3: 在低分辨率域计算修正量，只对修正量做一次上采样。
+    std::vector<float> delta_low(N2), full_low_I(N), full_delta(N);
+#pragma omp parallel for num_threads(numThreads)
+    for (int i = 0; i < N2; ++i) {
+        delta_low[i] = low_clean_sub[i] - src_low[i];
+    }
+    bilinearUpsample(src_low.data(), full_low_I.data(), w2, h2, w, h);
+    bilinearUpsample(delta_low.data(), full_delta.data(), w2, h2, w, h);
 
     // Step 4: 两频带融合与边缘/纹理保护
 #pragma omp parallel for num_threads(numThreads)
@@ -607,7 +613,7 @@ void process_channel_vst_twoband_edge(const float* src_vst, const float* guide_v
             float var = compute_local_variance(guide_vst, x, y, w, h);
 
             // 纹理区压制系数
-            float texture_suppress = 1.0f / (1.0f + 2.0f * max(0.0f, var - 1.2f));
+            float texture_suppress = 1.0f / (1.0f + 1.8f * max(0.0f, var - 1.2f));
 
             // 平滑区混合 alpha
             float alpha = 1.0f - min(1.0f, grad / (edge_thresh_vst + 1e-5f));
@@ -621,8 +627,8 @@ void process_channel_vst_twoband_edge(const float* src_vst, const float* guide_v
             float high_freq = src_vst[idx] - full_low_I[idx];
             float high_freq_clean = apply_smooth_coring(high_freq, coring_thresh_vst);
 
-            // 低频修正量 Delta
-            float delta = full_low_clean[idx] - full_low_I[idx];
+            // 已上采样的低频修正量
+            float delta = full_delta[idx];
 
             // 最终输出
             dst_vst[idx] = src_vst[idx] + alpha * (delta + high_freq_clean - high_freq);
